@@ -41,11 +41,23 @@ Goal: a merged PR makes the subdomain live automatically; a deleted file tears i
 
 Do this **before** opening to the public — without it, "manual review" isn't enforced.
 
-- [ ] **Branch protection** on `main`: require the validation Action to pass, require 1 approving review (you), block direct pushes.
-- [ ] **CODEOWNERS** so every PR auto-requests your review.
-- [ ] **PR template** — the claim checklist (name available, schema valid, owner matches, no forwarding email in file).
-- [ ] **Issue templates** — claim help, abuse report, name release.
-- [ ] **SECURITY.md** pointing to `abuse@devis.im` / `security@devis.im`.
+- [ ] **Branch protection** on `main`: require the validation Action to pass, require 1 approving review (you), block direct pushes. *(GitHub setting, not a file — apply via repo Settings or `gh api`; see below.)*
+- [x] **CODEOWNERS** so every PR auto-requests your review — `.github/CODEOWNERS` (`* @cdrrazan`).
+- [x] **PR template** — `.github/pull_request_template.md` (the claim checklist).
+- [x] **Issue templates** — `.github/ISSUE_TEMPLATE/` (claim help, abuse report, name release) + `config.yml` (security/abuse contact links, blank issues off).
+- [x] **SECURITY.md** — private reporting via security advisory / `security@devis.im`; abuse via `abuse@devis.im`.
+
+Apply branch protection once (requires admin + the check to have run at least once so its name resolves):
+
+```sh
+gh api -X PUT repos/cdrrazan/denizens/branches/main/protection \
+  -F required_pull_request_reviews.required_approving_review_count=1 \
+  -F required_pull_request_reviews.require_code_owner_reviews=true \
+  -F 'required_status_checks.contexts[]=validate' \
+  -F required_status_checks.strict=true \
+  -F enforce_admins=true \
+  -F restrictions=
+```
 
 ## Phase 5 — Email intake Worker (private forwarding)
 

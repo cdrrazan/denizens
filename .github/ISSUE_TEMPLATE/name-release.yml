@@ -1,0 +1,33 @@
+name: 🪦 Name release
+description: Release a name you own, or report a name that should be reclaimed.
+title: "[release] "
+labels: ["release"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **The normal way to release your own name is to open a PR that deletes your
+        `domains/<name>.json` file** — that tears down DNS and any email forwarding automatically.
+        Use this issue only if you can't open that PR yourself, or to flag a name that should be reclaimed.
+  - type: input
+    id: name
+    attributes:
+      label: Name
+      placeholder: yourname
+    validations:
+      required: true
+  - type: dropdown
+    id: reason
+    attributes:
+      label: Reason
+      options:
+        - I own this name and want to release it
+        - I lost access to the GitHub account that owns it
+        - Reporting a name that should be reclaimed (e.g. abandoned/impersonation)
+    validations:
+      required: true
+  - type: textarea
+    id: detail
+    attributes:
+      label: Details
+      description: Anything that helps verify ownership or explains the request.

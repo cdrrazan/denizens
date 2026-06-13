@@ -1,0 +1,36 @@
+name: 🚨 Abuse report
+description: Report a devis.im subdomain or email alias used for phishing, malware, spam, or impersonation.
+title: "[abuse] "
+labels: ["abuse"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping keep devis.im clean. Abusive names are removed without notice.
+        For reports containing sensitive detail, email **abuse@devis.im** instead of opening a public issue.
+  - type: input
+    id: target
+    attributes:
+      label: Offending name
+      description: The subdomain or alias, e.g. badactor.devis.im or badactor@devis.im
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Type of abuse
+      options:
+        - Phishing
+        - Malware
+        - Spam
+        - Impersonation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: What did you observe?
+      description: Links, screenshots, headers — whatever supports the report. Do not include other people's private data.
+    validations:
+      required: true

@@ -1,0 +1,30 @@
+name: 🙋 Claim help
+description: Stuck claiming a name? The validation check flagged something you don't understand?
+title: "[help] "
+labels: ["help wanted"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Most claim problems are explained by the automated check's comment on your PR.
+        Read [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md) first — then ask here.
+        **Never paste your forwarding email address anywhere public.**
+  - type: input
+    id: name
+    attributes:
+      label: Name you're trying to claim
+      placeholder: yourname
+    validations:
+      required: true
+  - type: input
+    id: pr
+    attributes:
+      label: Link to your pull request (if open)
+      placeholder: https://github.com/cdrrazan/denizens/pull/123
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's going wrong?
+      description: What did you expect, and what happened? Paste the check's comment if relevant.
+    validations:
+      required: true

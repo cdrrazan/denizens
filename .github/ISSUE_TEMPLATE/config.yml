@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔒 Report a security vulnerability (private)
+    url: https://github.com/cdrrazan/denizens/security/advisories/new
+    about: Use a private security advisory, or email security@devis.im. Do not open a public issue. See SECURITY.md.
+  - name: 📬 Email the operators
+    url: mailto:abuse@devis.im
+    about: For anything that shouldn't be public — abuse reports with sensitive detail, takedown requests.

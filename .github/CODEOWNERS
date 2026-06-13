@@ -1,0 +1,4 @@
+# Every PR auto-requests review from the maintainer.
+# Combined with branch protection (require 1 approval), this makes the
+# manual review gate real — no claim merges without an explicit approval.
+* @cdrrazan
