@@ -1,0 +1,12 @@
+{
+  "$schema": "../schema.json",
+  "owner": {
+    "github": "octocat"
+  },
+  "record": {
+    "CNAME": "octocat.github.io"
+  },
+  "email": {
+    "enabled": true
+  }
+}

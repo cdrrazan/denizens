@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/cdrrazan/denizens/main/schema.json",
+  "title": "devis.im denizen record",
+  "description": "A claim for a subdomain (name.devis.im) and optional email alias (name@devis.im) on devis.im. The filename is the claimed name; this file only describes the targets.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["owner", "record"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional editor hint. Set to ../schema.json so your editor validates this file as you type."
+    },
+    "owner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["github"],
+      "description": "Who owns this name.",
+      "properties": {
+        "github": {
+          "type": "string",
+          "description": "Your GitHub username. Must match the author of the pull request that adds this file.",
+          "pattern": "^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Optional PUBLIC contact email. Do NOT put your private forwarding address here. The address mail is forwarded to is submitted privately after merge."
+        }
+      }
+    },
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "Where your subdomain points. Use CNAME for most hosts (GitHub Pages, Vercel, Netlify). Use A/AAAA for a raw server IP. CNAME cannot be combined with A or AAAA.",
+      "properties": {
+        "CNAME": {
+          "type": "string",
+          "format": "hostname",
+          "description": "A single hostname to point to, e.g. yourname.github.io"
+        },
+        "A": {
+          "type": "array",
+          "items": { "type": "string", "format": "ipv4" },
+          "minItems": 1,
+          "description": "One or more IPv4 addresses."
+        },
+        "AAAA": {
+          "type": "array",
+          "items": { "type": "string", "format": "ipv6" },
+          "minItems": 1,
+          "description": "One or more IPv6 addresses."
+        },
+        "TXT": {
+          "type": ["string", "array"],
+          "items": { "type": "string" },
+          "description": "A TXT record value, or an array of values."
+        },
+        "URL": {
+          "type": "string",
+          "format": "uri",
+          "description": "Redirect this subdomain to another URL."
+        }
+      },
+      "allOf": [
+        {
+          "if": { "required": ["CNAME"] },
+          "then": {
+            "not": { "anyOf": [{ "required": ["A"] }, { "required": ["AAAA"] }] }
+          }
+        }
+      ]
+    },
+    "email": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled"],
+      "description": "Optional. Set enabled to true if you also want name@devis.im forwarding. Your real forwarding address is collected privately after merge and must NEVER appear in this file.",
+      "properties": {
+        "enabled": { "type": "boolean" }
+      }
+    },
+    "proxied": {
+      "type": "boolean",
+      "description": "Route the subdomain through Cloudflare's proxy. Defaults to false."
+    }
+  }
+}
