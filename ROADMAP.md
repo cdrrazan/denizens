@@ -15,6 +15,7 @@ Everything left to ship devis.im, in dependency order. Hand this to Claude Code 
 - [x] **CLAUDE.md** — project context, constraints, API shapes.
 - [x] **Cleanup + LICENSE** — removed the handoff prompt from the repo; added MIT license.
 - [x] **Validation GitHub Action** — enforces the validation checklist on every PR (Ruby + `json_schemer`).
+- [x] **RSpec suite** — `Validator` + `Provisioner` specced in `spec/`; runs in CI (`.github/workflows/test.yml`).
 
 ---
 

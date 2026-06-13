@@ -73,6 +73,7 @@ Today the repo is **data + schema only** — no automation has been built yet. T
 ## Stack / conventions
 
 - Registry automation: GitHub Actions running **Ruby** scripts (`scripts/*.rb`) + Cloudflare Worker for email intake. `validate-claim.rb` needs `json_schemer` (see `Gemfile`); `provision.rb` is stdlib-only. Workflows use `ruby/setup-ruby`.
+- Scripts are classes (`Validator`, `Provisioner`) with a guarded CLI entrypoint, specced with **RSpec** in `spec/`. Run `bundle exec rspec` (also runs in CI via `.github/workflows/test.yml`). Keep behaviour and specs in sync when changing a script.
 - Conventional commits. Keep it minimal and well-documented.
 - When adding fields, update `schema.json`, the README field table, and `CONTRIBUTING.md` together — keep them in sync.
 - Licensed MIT (`LICENSE`).

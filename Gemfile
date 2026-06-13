@@ -6,3 +6,7 @@ ruby ">= 3.1"
 
 # JSON Schema (draft-07) validation of domain claim files.
 gem "json_schemer", "~> 2.3"
+
+group :test do
+  gem "rspec", "~> 3.13"
+end
