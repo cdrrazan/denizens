@@ -35,8 +35,8 @@
       <label for="email">Forward mail to</label>
       <input id="email" name="email" type="email" autocomplete="email" required placeholder="you@example.com" />
 
-      <!-- Replace data-sitekey with your real Turnstile site key (public). -->
-      <div class="cf-turnstile" data-sitekey="YOUR_TURNSTILE_SITEKEY" style="margin-top:1rem"></div>
+      <!-- Turnstile site key (public). -->
+      <div class="cf-turnstile" data-sitekey="0x4AAAAAADkF3BmANU9KSpW5" style="margin-top:1rem"></div>
 
       <button type="submit">Activate forwarding</button>
     </form>
@@ -44,8 +44,8 @@
     <div id="msg"></div>
 
     <script>
-      // Set this to your deployed Worker URL.
-      const WORKER_URL = "https://denizens-email-intake.YOUR-SUBDOMAIN.workers.dev";
+      // Deployed Worker URL.
+      const WORKER_URL = "https://denizens-email-intake.rubyonrails.workers.dev";
       const form = document.getElementById("form");
       const msg = document.getElementById("msg");
 
