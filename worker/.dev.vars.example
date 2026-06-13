@@ -1,0 +1,6 @@
+# Copy to .dev.vars (gitignored) for `wrangler dev`. In production these are set
+# with `wrangler secret put <NAME>` — never commit real values.
+CF_API_TOKEN=your-scoped-cloudflare-token
+CF_ACCOUNT_ID=your-account-id
+CF_ZONE_ID=your-zone-id
+TURNSTILE_SECRET=your-turnstile-secret

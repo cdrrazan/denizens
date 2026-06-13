@@ -63,19 +63,21 @@ gh api -X PUT repos/cdrrazan/denizens/branches/main/protection \
 
 The private channel for the forwarding address. Nothing about it is stored.
 
-- [ ] Add **Account → Email Routing Addresses → Edit** to the token (or mint a separate token scoped for the Worker).
-- [ ] **Static form** (Cloudflare Pages): two fields — name + forwarding email — behind a **Turnstile** widget.
-- [ ] **Worker**:
-  - [ ] Verify the Turnstile token server-side.
-  - [ ] Confirm the name is actually merged: fetch `raw.githubusercontent.com/cdrrazan/denizens/main/domains/<name>.json` → must return 200 and `email.enabled: true`.
-  - [ ] Create the verified **destination address** (`POST /accounts/{ACCOUNT_ID}/email/routing/addresses`) → triggers Cloudflare's verification email to the user.
-  - [ ] Create the **routing rule** `name@devis.im → forward_to` using the proven shape in CLAUDE.md.
-  - [ ] Idempotent — re-submitting the same name doesn't duplicate the address or rule.
-  - [ ] Return "check your inbox and click the verification link." **Store nothing.**
-  - [ ] Secrets via `wrangler secret` / `.dev.vars` (gitignored) — never committed.
-- [ ] **Deploy** Worker + Pages; wire the form's submit to the Worker.
-- [ ] Set the real `EMAIL_FORM_URL` repo variable so Phase 3's comment links to the live form.
-- [ ] **Test** the full loop: claim → merge → submit email → click CF verification → send a test mail → confirm it lands.
+Built in `worker/` as a **TypeScript** Worker (Cloudflare Workers don't run Ruby) — the only JS/TS in the repo, isolated from the Ruby automation. Specced with vitest; runs in CI (`worker` job in `test.yml`).
+
+- [ ] Add **Account → Email Routing Addresses → Edit** to the token (or mint a separate token scoped for the Worker). *(manual — Cloudflare token scope)*
+- [x] **Static form** (`worker/public/index.html`, for Cloudflare Pages): name + forwarding email behind a **Turnstile** widget; prefills `?name=`.
+- [x] **Worker** (`worker/src/index.ts`):
+  - [x] Verify the Turnstile token server-side.
+  - [x] Confirm the name is merged: fetch `GH_RAW_BASE/<name>.json` → must be 200 and `email.enabled: true`.
+  - [x] Create the verified **destination address** → triggers Cloudflare's verification email.
+  - [x] Create/update the **routing rule** `name@devis.im → forward` using the proven shape.
+  - [x] Idempotent — re-submitting updates the rule and tolerates an existing address.
+  - [x] Return "check your inbox." **Stores nothing**; never logs the address or token.
+  - [x] Secrets via `wrangler secret` / `.dev.vars` (gitignored) — never committed.
+- [ ] **Deploy** Worker + Pages; set the Turnstile site key + `WORKER_URL` in the form, and `ALLOWED_ORIGIN` in `wrangler.toml`. *(manual — needs CF account)*
+- [ ] Set the real `EMAIL_FORM_URL` repo variable so Phase 3's comment links to the live form. *(manual)*
+- [ ] **Test** the full loop: claim → merge → submit email → click CF verification → send a test mail → confirm it lands. *(needs live deploy)*
 
 ## Phase 6 — What the domain serves
 

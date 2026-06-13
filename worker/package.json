@@ -1,0 +1,19 @@
+{
+  "name": "denizens-email-intake",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Private email-intake Worker for devis.im — collects a forwarding address behind Turnstile and provisions Cloudflare Email Routing.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240909.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0",
+    "wrangler": "^3.78.0"
+  }
+}
