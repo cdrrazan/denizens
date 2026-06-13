@@ -1,0 +1,14 @@
+# Dependencies (installed in CI, never committed)
+node_modules/
+
+# CI scratch files written by the validation workflow
+changed.json
+comment.md
+
+# Secrets — Cloudflare token, zone/account IDs live in GitHub Secrets / Worker env
+.dev.vars
+.env
+.env.*
+
+# OS noise
+.DS_Store

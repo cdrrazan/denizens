@@ -66,7 +66,7 @@ Today the repo is **data + schema only** — no automation has been built yet. T
 ## What is being built, in order (confirm plan before each)
 
 1. **`CLAUDE.md`** — this file. ✅
-2. **Validation GitHub Action** (`pull_request`): enforce the validation checklist above; post a clear pass/fail comment.
+2. **Validation GitHub Action** (`pull_request`): enforce the validation checklist above; post a clear pass/fail comment. ✅ `.github/workflows/validate.yml` + `scripts/validate-claim.js` (Node + ajv). Posts a single sticky comment (marker `<!-- denizens-validation -->`), updated in place on each push.
 3. **Provisioning GitHub Action** (merge to `main`): diff added/changed/deleted `domains/*.json`; create/update/delete Cloudflare DNS records idempotently; if `email.enabled`, comment linking the user to the private email form; on deletion, tear down DNS record + routing rule.
 4. **Cloudflare Worker + static form** (private email intake): one-field form (subdomain + forwarding email) behind Turnstile; Worker confirms the name is merged by fetching `raw.githubusercontent.com/cdrrazan/denizens/main/domains/<name>.json`; creates verified destination address + routing rule via the proven shapes; returns "check your inbox" message. Store nothing.
 
