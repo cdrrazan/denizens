@@ -90,10 +90,11 @@ Built in `worker/` as a **TypeScript** Worker (Cloudflare Workers don't run Ruby
 
 The work that keeps a shared domain alive and reputable.
 
-- [ ] Add a **DMARC** record if not already present (start `p=none`, monitor, tighten later).
-- [ ] Set up **Google Postmaster Tools** for devis.im — watch domain reputation and SPF/DKIM/DMARC pass rates.
-- [ ] **Scheduled check** (Action on a cron): is devis.im on major blocklists (Spamhaus etc.)?
-- [ ] Document the **abuse triage flow**: report → remove file → teardown DNS + rule.
+- [x] **Blocklist cron** — `.github/workflows/blocklist.yml` (weekly + `workflow_dispatch`) + `scripts/blocklist-check.rb` (Ruby, stdlib `resolv`). Checks devis.im against Spamhaus DBL / SURBL / URIBL; treats resolver-blocked error sentinels as *unknown* (no false alarms), opens a tracking issue on a real listing. Specced in `spec/blocklist_check_spec.rb`.
+- [x] **Abuse triage flow** documented — `docs/abuse-triage.md` (report → confirm → delete file → automatic DNS + routing-rule teardown → reserve if needed → close loop; plus the delisting steps).
+- [x] **DMARC + Postmaster** documented — `docs/email-reputation.md` (exact `_dmarc` record values, `none`→`quarantine`→`reject` progression, the forwarding/SRS caveat, Postmaster setup).
+- [ ] **Apply the DMARC** `_dmarc.devis.im` TXT record (start `p=none`) in Cloudflare. *(manual — DNS; value in `docs/email-reputation.md`)*
+- [ ] **Set up Google Postmaster Tools** for devis.im. *(manual — Google account + DNS verify)*
 - [ ] *(Later)* automated phishing/malware scan on claimed subdomains.
 
 ## Phase 8 — Launch
