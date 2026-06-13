@@ -24,7 +24,7 @@ Today the repo is **data + schema only** — no automation has been built yet. T
 - `README.md` / `CONTRIBUTING.md` — contributor-facing docs.
 - `LICENSE` — MIT.
 - `site/` — static landing page for the apex `devis.im` (plain HTML, no build). Separate Cloudflare Pages project from `worker/public/` (the `noindex` email form) so the private form never bleeds into the indexable public site.
-- `docs/` — operator runbooks: `abuse-triage.md` (handling abuse reports + delistings), `email-reputation.md` (DMARC progression + Postmaster + blocklist monitoring).
+- `docs/` — operator runbooks: `abuse-triage.md` (handling abuse reports + delistings), `email-reputation.md` (DMARC progression + Postmaster + blocklist monitoring); plus `good-first-claim.md` (newcomer claim walkthrough).
 
 ## Rules enforced by schema.json (mirror these when reviewing a claim)
 

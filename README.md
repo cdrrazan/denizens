@@ -30,6 +30,9 @@ To opt in, set `"email": { "enabled": true }` in your file. Leave the `email` bl
 
 ## Claiming a name
 
+New to pull requests? Follow the slow, no-assumptions walkthrough in
+[**Your first claim, step by step**](./docs/good-first-claim.md). The short version:
+
 1. **Fork** this repository.
 2. **Create** `domains/<yourname>.json`. The filename *is* the name you're claiming — `rajan.json` claims `rajan.devis.im` and `rajan@devis.im`. Use lowercase letters, numbers, and hyphens only.
 3. **Fill it in** using the format below. Keep `"$schema": "../schema.json"` at the top so your editor validates it as you type.

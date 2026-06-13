@@ -99,9 +99,10 @@ The work that keeps a shared domain alive and reputable.
 
 ## Phase 8 — Launch
 
-- [ ] Seed a few real claims (start with your own: `rajan`).
-- [ ] Write the build-in-public / digitonX post.
-- [ ] Announce; add a "good first claim" path for newcomers.
+- [x] **"Good first claim" path** — `docs/good-first-claim.md`: a slow, no-CLI, GitHub-web walkthrough for newcomers; linked from the README claiming section.
+- [~] **Seed claim `rajan`** — `domains/rajan.json` (CNAME → `cdrrazan.github.io`, `email.enabled: true`) prepared on branch `seed/rajan` to **dogfood the real PR flow** (validation on PR → provisioning on merge). *(needs: push main, push branch, open PR, merge; CF secrets live for provisioning + the Worker deployed for the email step.)*
+- [ ] Write the build-in-public / digitonX post. *(content pass — deferred)*
+- [ ] Announce once the seed is live and resolving.
 
 ---
 
