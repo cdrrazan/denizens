@@ -108,15 +108,55 @@ describe("claim confirmation", () => {
   });
 });
 
-describe("happy path", () => {
-  it("creates the address + routing rule and returns check-your-inbox", async () => {
+// A destination address that already exists and IS verified. Used to drive the
+// flow past the verification gate so the routing rule gets created.
+function verifiedAddress(): Responder {
+  return (method) =>
+    method === "POST"
+      ? res({ success: false, errors: [{ code: 1009, message: "exists" }] })
+      : res({ success: true, result: [{ email: "me@example.com", verified: "2026-06-13T00:00:00Z" }] });
+}
+
+describe("new (unverified) address", () => {
+  it("emails a verification link and defers the rule — no rule call yet", async () => {
+    // Default mock: POST address succeeds => brand-new, unverified.
     const r = await worker.fetch(post(valid), env);
-    const data = (await r.json()) as { ok: boolean; message: string };
+    const data = (await r.json()) as { ok: boolean; pending?: boolean; message: string };
     expect(r.status).toBe(200);
     expect(data.ok).toBe(true);
-    expect(data.message).toMatch(/verification email/i);
+    expect(data.pending).toBe(true);
+    expect(data.message).toMatch(/verification link/i);
 
     expect(calls.some((c) => c.method === "POST" && c.url.includes("/email/routing/addresses"))).toBe(true);
+    // The rule must NOT be touched until the destination is verified.
+    expect(calls.some((c) => c.url.includes("/email/routing/rules"))).toBe(false);
+  });
+
+  it("treats an existing-but-unverified address as still pending", async () => {
+    mockFetch({
+      "/email/routing/addresses": (method) =>
+        method === "POST"
+          ? res({ success: false, errors: [{ code: 1009, message: "exists" }] })
+          : res({ success: true, result: [{ email: "me@example.com", verified: null }] }),
+    });
+    const r = await worker.fetch(post(valid), env);
+    const data = (await r.json()) as { pending?: boolean };
+    expect(r.status).toBe(200);
+    expect(data.pending).toBe(true);
+    expect(calls.some((c) => c.url.includes("/email/routing/rules"))).toBe(false);
+  });
+});
+
+describe("verified address — rule creation", () => {
+  it("creates the routing rule and returns the live message", async () => {
+    mockFetch({ "/email/routing/addresses": verifiedAddress() });
+    const r = await worker.fetch(post(valid), env);
+    const data = (await r.json()) as { ok: boolean; pending?: boolean; message: string };
+    expect(r.status).toBe(200);
+    expect(data.ok).toBe(true);
+    expect(data.pending).toBeUndefined();
+    expect(data.message).toMatch(/forwards to your inbox/i);
+
     expect(calls.some((c) => c.method === "POST" && c.url.includes("/email/routing/rules"))).toBe(true);
     // The forwarding rule body carries the address; that's the only place it appears.
     const ruleCall = calls.find((c) => c.method === "POST" && c.url.includes("/email/routing/rules"));
@@ -125,26 +165,14 @@ describe("happy path", () => {
   });
 
   it("never leaks the API token in any request URL", async () => {
+    mockFetch({ "/email/routing/addresses": verifiedAddress() });
     await worker.fetch(post(valid), env);
     expect(JSON.stringify(calls.map((c) => c.url))).not.toContain("test-token-SHOULD-NOT-LEAK");
-  });
-});
-
-describe("idempotency", () => {
-  it("treats an already-existing destination address as success", async () => {
-    mockFetch({
-      // POST create reports "already exists"; the GET list confirms it's present.
-      "/email/routing/addresses": (method) =>
-        method === "POST"
-          ? res({ success: false, errors: [{ code: 1009, message: "exists" }] })
-          : res({ success: true, result: [{ email: "me@example.com" }] }),
-    });
-    const r = await worker.fetch(post(valid), env);
-    expect(r.status).toBe(200);
   });
 
   it("updates the existing routing rule instead of creating a duplicate", async () => {
     mockFetch({
+      "/email/routing/addresses": verifiedAddress(),
       "/email/routing/rules": () =>
         res({
           success: true,
@@ -155,5 +183,18 @@ describe("idempotency", () => {
     expect(r.status).toBe(200);
     expect(calls.some((c) => c.method === "PUT" && c.url.includes("/email/routing/rules/rule-9"))).toBe(true);
     expect(calls.some((c) => c.method === "POST" && c.url.includes("/email/routing/rules"))).toBe(false);
+  });
+});
+
+describe("provisioning failure", () => {
+  it("502s when the destination address cannot be created or found", async () => {
+    mockFetch({
+      "/email/routing/addresses": (method) =>
+        method === "POST"
+          ? res({ success: false, errors: [{ code: 1, message: "nope" }] })
+          : res({ success: true, result: [] }), // not present in the list
+    });
+    const r = await worker.fetch(post(valid), env);
+    expect(r.status).toBe(502);
   });
 });

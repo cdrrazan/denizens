@@ -28,8 +28,9 @@
     <h1>Set up your <code>name@devis.im</code> forwarding</h1>
     <p class="note">
       Enter the name you already claimed and the inbox you want mail forwarded to.
-      Cloudflare will email that inbox a verification link — click it to activate.
-      Your address is sent privately and is never stored in the public registry.
+      If the inbox is new to devis.im, Cloudflare emails it a verification link —
+      click it, then submit this form once more to finish. Your address is sent
+      privately and is never stored in the public registry.
     </p>
 
     <form id="form">
@@ -88,7 +89,9 @@
           const data = await res.json();
           if (data.ok) {
             show("ok", data.message);
-            form.reset();
+            // On the verify-then-resubmit step, keep the fields so the user can
+            // just re-submit after clicking the link. Clear only when fully done.
+            if (!data.pending) form.reset();
           } else {
             show("err", data.error || "Something went wrong.");
           }

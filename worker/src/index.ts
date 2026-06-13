@@ -85,9 +85,23 @@ export default {
     }
 
     try {
-      // 4. Verified destination address (idempotent) — triggers the CF verification email.
-      await ensureDestinationAddress(env, email);
-      // 5. Routing rule name@devis.im -> forward (idempotent).
+      // 4. Destination address (idempotent) — a brand-new one triggers Cloudflare's
+      //    verification email. The forward rule below can only attach to a *verified*
+      //    destination, so a freshly-created address is not ready on this submit.
+      const dest = await ensureDestinationAddress(env, email);
+      if (!dest.verified) {
+        return json(
+          {
+            ok: true,
+            pending: true,
+            message:
+              "Almost there — Cloudflare just emailed you a verification link. Click it, then submit this form again to finish. Forwarding goes live on that second submit.",
+          },
+          200,
+          cors,
+        );
+      }
+      // 5. Destination is verified — create/update the routing rule (idempotent).
       await upsertRoutingRule(env, name, email);
     } catch (e) {
       // Never surface internals or the address; log without the email.
@@ -98,8 +112,7 @@ export default {
     return json(
       {
         ok: true,
-        message:
-          "Almost there — check your inbox for a verification email from Cloudflare and click the link to activate forwarding.",
+        message: `Done — mail sent to ${name}@${env.ZONE_NAME} now forwards to your inbox.`,
       },
       200,
       cors,
@@ -181,25 +194,34 @@ async function cf<T = unknown>(
 }
 
 /**
- * Create a verified destination address. If it already exists, Cloudflare
- * returns an error — we treat "already present" as success (idempotent).
+ * Ensure a destination address exists and report whether it is verified.
+ *
+ * A freshly-created address is unverified — Cloudflare emails the user a
+ * verification link, and a forward rule cannot attach until they click it. So
+ * we return the verification state and let the caller decide: defer the rule
+ * (new address) or create it (already verified). Idempotent: an existing
+ * address is found via the list rather than re-created.
  */
-async function ensureDestinationAddress(env: Env, email: string): Promise<void> {
+async function ensureDestinationAddress(env: Env, email: string): Promise<{ verified: boolean }> {
   const created = await cf(env, "POST", `/accounts/${env.CF_ACCOUNT_ID}/email/routing/addresses`, {
     email,
   });
-  if (created.success) return;
+  // A successful create is always a brand-new, not-yet-verified address.
+  if (created.success) return { verified: false };
 
-  // Already exists? Confirm by listing — never trust the error text alone.
-  const list = await cf<Array<{ email: string }>>(
+  // Already exists (or the create errored) — list to confirm presence and read
+  // the verification state. Never trust the error text alone.
+  const list = await cf<Array<{ email: string; verified?: string | null }>>(
     env,
     "GET",
     `/accounts/${env.CF_ACCOUNT_ID}/email/routing/addresses?per_page=50`,
   );
-  const present = list.success && (list.result || []).some((a) => a.email.toLowerCase() === email.toLowerCase());
-  if (present) return;
+  const found =
+    list.success ? (list.result || []).find((a) => a.email.toLowerCase() === email.toLowerCase()) : undefined;
+  if (!found) throw new Error("destination address create failed");
 
-  throw new Error("destination address create failed");
+  // Cloudflare sets `verified` to a timestamp once confirmed, null/absent otherwise.
+  return { verified: found.verified != null };
 }
 
 interface RoutingRule {
