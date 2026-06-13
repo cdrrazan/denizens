@@ -66,13 +66,14 @@ Today the repo is **data + schema only** — no automation has been built yet. T
 ## What is being built, in order (confirm plan before each)
 
 1. **`CLAUDE.md`** — this file. ✅
-2. **Validation GitHub Action** (`pull_request`): enforce the validation checklist above; post a clear pass/fail comment. ✅ `.github/workflows/validate.yml` + `scripts/validate-claim.js` (Node + ajv). Posts a single sticky comment (marker `<!-- denizens-validation -->`), updated in place on each push.
-3. **Provisioning GitHub Action** (merge to `main`): diff added/changed/deleted `domains/*.json`; create/update/delete Cloudflare DNS records idempotently; if `email.enabled`, comment linking the user to the private email form; on deletion, tear down DNS record + routing rule.
+2. **Validation GitHub Action** (`pull_request`): enforce the validation checklist above; post a clear pass/fail comment. ✅ `.github/workflows/validate.yml` + `scripts/validate-claim.rb` (Ruby + `json_schemer`). Posts a single sticky comment (marker `<!-- denizens-validation -->`), updated in place on each push.
+3. **Provisioning GitHub Action** (merge to `main`): diff added/changed/deleted `domains/*.json`; create/update/delete Cloudflare DNS records idempotently; if `email.enabled`, comment linking the user to the private email form; on deletion, tear down DNS record + routing rule. ✅ `.github/workflows/provision.yml` + `scripts/provision.rb` (Ruby, stdlib `net/http` — no gems). `URL` records deferred (logged + skipped). Serialized by a `provision` concurrency group.
 4. **Cloudflare Worker + static form** (private email intake): one-field form (subdomain + forwarding email) behind Turnstile; Worker confirms the name is merged by fetching `raw.githubusercontent.com/cdrrazan/denizens/main/domains/<name>.json`; creates verified destination address + routing rule via the proven shapes; returns "check your inbox" message. Store nothing.
 
 ## Stack / conventions
 
-- Registry automation: GitHub Actions (Node or small script) + Cloudflare Worker for email intake. Rails 8 is the primary stack elsewhere but not used here.
-- Conventional commits. RSpec only if Ruby is involved. Keep it minimal and well-documented.
+- Registry automation: GitHub Actions running **Ruby** scripts (`scripts/*.rb`) + Cloudflare Worker for email intake. `validate-claim.rb` needs `json_schemer` (see `Gemfile`); `provision.rb` is stdlib-only. Workflows use `ruby/setup-ruby`.
+- Scripts are classes (`Validator`, `Provisioner`) with a guarded CLI entrypoint, specced with **RSpec** in `spec/`. Run `bundle exec rspec` (also runs in CI via `.github/workflows/test.yml`). Keep behaviour and specs in sync when changing a script.
+- Conventional commits. Keep it minimal and well-documented.
 - When adding fields, update `schema.json`, the README field table, and `CONTRIBUTING.md` together — keep them in sync.
 - Licensed MIT (`LICENSE`).

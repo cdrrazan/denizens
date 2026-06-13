@@ -14,7 +14,8 @@ Everything left to ship devis.im, in dependency order. Hand this to Claude Code 
 - [x] **Repo scaffold** — `schema.json`, `reserved.json`, `domains/example.json`, `README.md`, `CONTRIBUTING.md`.
 - [x] **CLAUDE.md** — project context, constraints, API shapes.
 - [x] **Cleanup + LICENSE** — removed the handoff prompt from the repo; added MIT license.
-- [x] **Validation GitHub Action** — enforces the validation checklist on every PR.
+- [x] **Validation GitHub Action** — enforces the validation checklist on every PR (Ruby + `json_schemer`).
+- [x] **RSpec suite** — `Validator` + `Provisioner` specced in `spec/`; runs in CI (`.github/workflows/test.yml`).
 
 ---
 
@@ -22,17 +23,19 @@ Everything left to ship devis.im, in dependency order. Hand this to Claude Code 
 
 Goal: a merged PR makes the subdomain live automatically; a deleted file tears it down. Idempotent and failure-isolated.
 
-- [ ] Add GitHub repo **secrets**: `CF_API_TOKEN`, `CF_ZONE_ID`, `CF_ACCOUNT_ID` (Settings → Secrets and variables → Actions). Never in tracked files.
-- [ ] Add a repo **variable** `EMAIL_FORM_URL` (placeholder for now; set the real value in Phase 5).
-- [ ] **Provisioning Action** on push to `main`:
-  - [ ] Diff which `domains/*.json` files were added / changed / deleted in the merge.
-  - [ ] Added/changed → create or update the DNS record(s) **idempotently** (look up existing record by name first; PATCH if it exists, POST if not — never blind-create).
-  - [ ] Map every record type (`CNAME`, `A`, `AAAA`, `TXT`, `URL`) to the Cloudflare DNS API; honor the `proxied` flag.
-  - [ ] Deleted → delete the DNS record **and** any matching routing rule (teardown).
-  - [ ] If `email.enabled` on an added file → post a comment linking the user to `EMAIL_FORM_URL` with their name prefilled.
-  - [ ] Failure isolation: one bad file must not break the whole batch; log failures without leaking any address or secret.
-- [ ] **Test** end-to-end: open a real PR claiming a throwaway name → merge → confirm `name.devis.im` resolves and HTTPS works.
-- [ ] **Test** teardown: delete the file in a PR → merge → confirm the record is gone.
+- [ ] Add GitHub repo **secrets**: `CF_API_TOKEN`, `CF_ZONE_ID`, `CF_ACCOUNT_ID` (Settings → Secrets and variables → Actions). Never in tracked files. *(manual — required before the Action can run)*
+- [ ] Add a repo **variable** `EMAIL_FORM_URL` (placeholder for now; set the real value in Phase 5). *(manual — without it the email-setup comment is skipped)*
+- [x] **Provisioning Action** on push to `main` — `.github/workflows/provision.yml` + `scripts/provision.rb` (Ruby, stdlib only):
+  - [x] Diff which `domains/*.json` files were added / changed / deleted in the merge (`--no-renames` so delete+add never collapses to a rename).
+  - [x] Added/changed → create or update the DNS record(s) **idempotently** (look up by name; delete stale, create missing, patch proxied — never blind-create).
+  - [x] Map record types to the Cloudflare DNS API; honor the `proxied` flag. `CNAME`/`A`/`AAAA`/`TXT` done; **`URL` deferred** (logged + skipped — no native CF type; redirect support is a follow-up).
+  - [x] Deleted → delete the DNS record **and** any matching `name@devis.im` routing rule (teardown).
+  - [x] If `email.enabled` on an added file → post a comment linking the user to `EMAIL_FORM_URL` with their name prefilled.
+  - [x] Failure isolation: one bad file does not break the batch; never logs the token or any email address.
+- [ ] **Test** end-to-end: open a real PR claiming a throwaway name → merge → confirm `name.devis.im` resolves and HTTPS works. *(needs live secrets)*
+- [ ] **Test** teardown: delete the file in a PR → merge → confirm the record is gone. *(needs live secrets)*
+
+> Follow-up: implement `URL` record support (proxied placeholder + Cloudflare Single Redirect rule).
 
 ## Phase 4 — Repo governance (make the manual gate real)
 
