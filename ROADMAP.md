@@ -81,9 +81,10 @@ Built in `worker/` as a **TypeScript** Worker (Cloudflare Workers don't run Ruby
 
 ## Phase 6 — What the domain serves
 
-- [ ] Decide and build what **root `devis.im`** shows — a landing page explaining the project, linking the repo and the claim form.
-- [ ] Decide what an **unclaimed/parked subdomain** shows (clean 404 vs. redirect to the landing).
-- [ ] Host the landing on Pages (can share the Worker/Pages project).
+- [x] **Root `devis.im` landing** — `site/index.html`: static, no build, system fonts, light/dark. Explains the project; links the repo and the claim flow (README). Minimal, self-hosted (matches the email form's style).
+- [x] **Parked/unclaimed subdomain → NXDOMAIN** (decided). No wildcard DNS — an unclaimed `name.devis.im` simply doesn't resolve; a name is live only once its claim merges. Keeps attack surface minimal and avoids a wildcard shadowing real claims. Documented in `site/README.md`; a "claim this name" interstitial is noted there as a future option.
+- [x] **404 page** — `site/404.html` for unmatched paths on the landing's Pages project.
+- [ ] **Deploy** `site/` as a Cloudflare Pages project, add the apex `devis.im` custom domain (cert auto). Keep it separate from the `worker/public` email form so the `noindex` form never bleeds into the public site. *(manual — needs CF account; steps in `site/README.md`)*
 
 ## Phase 7 — Monitoring & abuse (ongoing safety)
 

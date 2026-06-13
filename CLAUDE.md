@@ -23,6 +23,7 @@ Today the repo is **data + schema only** — no automation has been built yet. T
 - `reserved.json` — names that cannot be claimed (DNS infra, RFC 2142 email roles, security-sensitive local-parts, brand words). Single `reserved` array, lowercase entries.
 - `README.md` / `CONTRIBUTING.md` — contributor-facing docs.
 - `LICENSE` — MIT.
+- `site/` — static landing page for the apex `devis.im` (plain HTML, no build). Separate Cloudflare Pages project from `worker/public/` (the `noindex` email form) so the private form never bleeds into the indexable public site.
 
 ## Rules enforced by schema.json (mirror these when reviewing a claim)
 
@@ -69,6 +70,7 @@ Today the repo is **data + schema only** — no automation has been built yet. T
 2. **Validation GitHub Action** (`pull_request`): enforce the validation checklist above; post a clear pass/fail comment. ✅ `.github/workflows/validate.yml` + `scripts/validate-claim.rb` (Ruby + `json_schemer`). Posts a single sticky comment (marker `<!-- denizens-validation -->`), updated in place on each push.
 3. **Provisioning GitHub Action** (merge to `main`): diff added/changed/deleted `domains/*.json`; create/update/delete Cloudflare DNS records idempotently; if `email.enabled`, comment linking the user to the private email form; on deletion, tear down DNS record + routing rule. ✅ `.github/workflows/provision.yml` + `scripts/provision.rb` (Ruby, stdlib `net/http` — no gems). `URL` records deferred (logged + skipped). Serialized by a `provision` concurrency group.
 4. **Cloudflare Worker + static form** (private email intake): one-field form (subdomain + forwarding email) behind Turnstile; Worker confirms the name is merged by fetching `raw.githubusercontent.com/cdrrazan/denizens/main/domains/<name>.json`; creates verified destination address + routing rule via the proven shapes; returns "check your inbox" message. Store nothing. ✅ `worker/` — **TypeScript** (Cloudflare Workers run JS/TS, not Ruby), isolated subproject, specced with `vitest`. Secrets via `wrangler secret`; `.dev.vars` gitignored. This is the **only** JS/TS in the repo — the registry automation stays pure Ruby.
+5. **Landing page** (apex `devis.im`): static HTML in `site/` (no build), explains the project and links the repo + claim flow. Separate Pages project from the `noindex` email form. **Parked subdomains: NXDOMAIN by decision** — no wildcard DNS; an unclaimed `name.devis.im` does not resolve, a name is live only once its claim merges. ✅ Deploy is manual (see `site/README.md`).
 
 ## Stack / conventions
 
