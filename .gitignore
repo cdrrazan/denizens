@@ -1,5 +1,6 @@
-# Dependencies (installed in CI, never committed)
-node_modules/
+# Ruby deps cache (installed in CI; Gemfile + Gemfile.lock are committed)
+vendor/bundle/
+.bundle/
 
 # CI scratch files written by the validation workflow
 changed.json
