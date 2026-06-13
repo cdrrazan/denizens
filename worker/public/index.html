@@ -12,7 +12,12 @@
       h1 { font-size: 1.4rem; }
       label { display: block; margin: 1rem 0 0.25rem; font-weight: 600; }
       input { width: 100%; padding: 0.6rem; font-size: 1rem; box-sizing: border-box; }
-      button { margin-top: 1.25rem; padding: 0.7rem 1.2rem; font-size: 1rem; cursor: pointer; }
+      button { margin-top: 1.25rem; padding: 0.7rem 1.2rem; font-size: 1rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; }
+      button[disabled] { cursor: progress; opacity: 0.7; }
+      .spinner { width: 1em; height: 1em; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; display: none; animation: spin 0.6s linear infinite; }
+      button[disabled] .spinner { display: inline-block; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
       .note { color: #666; font-size: 0.9rem; }
       #msg { margin-top: 1rem; padding: 0.75rem; border-radius: 6px; display: none; }
       #msg.ok { background: #e6f5ea; color: #14622f; display: block; }
@@ -38,7 +43,7 @@
       <!-- Turnstile site key (public). -->
       <div class="cf-turnstile" data-sitekey="0x4AAAAAADkF3BmANU9KSpW5" style="margin-top:1rem"></div>
 
-      <button type="submit">Activate forwarding</button>
+      <button type="submit"><span class="spinner" aria-hidden="true"></span><span class="btn-label">Activate forwarding</span></button>
     </form>
 
     <div id="msg"></div>
@@ -48,6 +53,13 @@
       const WORKER_URL = "https://denizens-email-intake.rubyonrails.workers.dev";
       const form = document.getElementById("form");
       const msg = document.getElementById("msg");
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const btnLabel = submitBtn.querySelector(".btn-label");
+
+      function setBusy(busy) {
+        submitBtn.disabled = busy;
+        btnLabel.textContent = busy ? "Activating…" : "Activate forwarding";
+      }
 
       // Prefill the name from ?name= (the provisioning bot links here with it).
       const params = new URLSearchParams(location.search);
@@ -62,6 +74,7 @@
           show("err", "Please complete the verification checkbox.");
           return;
         }
+        setBusy(true);
         try {
           const res = await fetch(WORKER_URL, {
             method: "POST",
@@ -81,6 +94,8 @@
           }
         } catch {
           show("err", "Network error. Please try again.");
+        } finally {
+          setBusy(false);
         }
         if (window.turnstile) window.turnstile.reset();
       });
