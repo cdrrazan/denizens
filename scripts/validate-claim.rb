@@ -35,6 +35,7 @@ class Validator
   MARKER = "<!-- denizens-validation -->"
   EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/
   NAME_RE = /\A[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\z/
+  MAX_NAMES_PER_OWNER = 5
 
   attr_reader :results, :skip_message
 
@@ -114,6 +115,15 @@ class Validator
         base_content.nil?,
         "Name available",
         base_content.nil? ? "" : "`#{name}` already exists in the registry and cannot be re-claimed."
+      )
+
+      # Per-owner cap: count every claim this author holds (the checkout includes
+      # all merged files plus this new one) and reject if it would exceed the cap.
+      owned = count_owned_names(@author)
+      check(
+        owned <= MAX_NAMES_PER_OWNER,
+        "Within name limit (#{MAX_NAMES_PER_OWNER})",
+        owned <= MAX_NAMES_PER_OWNER ? "" : "`#{@author}` would hold #{owned} names; the limit is #{MAX_NAMES_PER_OWNER}. Release a name (delete its file in a PR) before claiming another."
       )
     end
 
@@ -287,6 +297,22 @@ class Validator
     req.body = body.to_json if body
     res = http.request(req)
     [res.code.to_i, (JSON.parse(res.body) rescue nil)]
+  end
+
+  # Count how many domain files (on disk — merged claims plus the one in this PR)
+  # belong to the given GitHub owner, case-insensitively. Malformed files are
+  # skipped (they fail their own checks elsewhere).
+  def count_owned_names(author)
+    return 0 if author.to_s.empty?
+
+    Dir.glob("domains/*.json").count do |f|
+      next false if f == "domains/example.json"
+
+      owner = JSON.parse(File.read(f)).dig("owner", "github").to_s
+      !owner.empty? && owner.casecmp?(author)
+    rescue StandardError
+      false
+    end
   end
 
   # True if the string parses as an IPv4/IPv6 literal (so it must NOT be a CNAME).

@@ -110,6 +110,27 @@ RSpec.describe Validator do
     end
   end
 
+  describe "per-owner cap" do
+    it "rejects a new claim that would exceed the limit" do
+      6.times { |i| write_claim("domains/capspec#{i}.json", claim(github: "capspec-user")) }
+      v = validate([{ "filename" => "domains/capspec5.json", "status" => "added" }], author: "capspec-user")
+      expect(result(v, "Within name limit (5)")[:ok]).to be(false)
+    end
+
+    it "allows a new claim within the limit" do
+      3.times { |i| write_claim("domains/fewspec#{i}.json", claim(github: "fewspec-user")) }
+      v = validate([{ "filename" => "domains/fewspec2.json", "status" => "added" }], author: "fewspec-user")
+      expect(result(v, "Within name limit (5)")[:ok]).to be(true)
+    end
+
+    it "does not apply the cap to edits of an existing file" do
+      6.times { |i| write_claim("domains/editspec#{i}.json", claim(github: "editspec-user")) }
+      v = validate([{ "filename" => "domains/editspec0.json", "status" => "modified" }],
+                   author: "editspec-user", base_content: claim(github: "editspec-user"))
+      expect(result(v, "Within name limit (5)")).to be_nil
+    end
+  end
+
   describe "record sanity" do
     def added(file) = [{ "filename" => file, "status" => "added" }]
 
