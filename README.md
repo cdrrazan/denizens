@@ -137,6 +137,10 @@ Pick whichever fits how your site is hosted. Use `CNAME` **or** `A`/`AAAA`, not 
 | `TXT` | a string or array of strings | verification records, etc. |
 | `URL` | a URL | redirect the subdomain elsewhere — **not supported yet** (claims using it are rejected) |
 
+Validation rejects, with a clear message: a `CNAME` set to an IP (use `A`/`AAAA`),
+`A`/`AAAA` addresses that aren't **public** (no loopback, private, link-local, or
+multicast), empty record blocks, and the wrong IP family for the type.
+
 ---
 
 ## 🔒 Reserved names

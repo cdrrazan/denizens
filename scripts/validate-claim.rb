@@ -28,6 +28,7 @@
 require "json"
 require "net/http"
 require "uri"
+require "ipaddr"
 require "json_schemer"
 
 class Validator
@@ -158,6 +159,44 @@ class Validator
       uses_url ? "`URL` (redirect) records aren't supported yet — the subdomain would merge but never resolve. Use `CNAME` for hosted platforms, or `A`/`AAAA` for a raw server IP." : ""
     )
 
+    # Record must declare at least one usable target, else the subdomain merges
+    # but resolves to nothing.
+    has_target = (rec.keys & %w[CNAME A AAAA TXT]).any?
+    check(
+      has_target,
+      "Record has a target",
+      has_target ? "" : "`record` has no usable target. Add a `CNAME` (a hostname), `A`/`AAAA` (IP addresses), or `TXT`."
+    )
+
+    # CNAME must be a hostname, not an IP literal (an IP is a valid hostname
+    # syntactically, so the schema's `format: hostname` lets it slip through).
+    if rec.key?("CNAME")
+      cname_is_ip = ip_literal?(rec["CNAME"].to_s)
+      check(
+        !cname_is_ip,
+        "CNAME is a hostname",
+        cname_is_ip ? "`CNAME` must be a hostname (e.g. `yourname.github.io`), not an IP address. For a raw server IP use `A` (IPv4) or `AAAA` (IPv6)." : ""
+      )
+    end
+
+    # A / AAAA must be non-empty arrays of public, routable IPs of the right
+    # family. Rejects loopback/private/link-local/multicast/unspecified — a public
+    # subdomain pointing at 127.0.0.1 / 10.x / ::1 is broken or abusive.
+    { "A" => :v4, "AAAA" => :v6 }.each do |key, fam|
+      next unless rec.key?(key)
+      vals = rec[key]
+      if !vals.is_a?(Array) || vals.empty?
+        check(false, "#{key} addresses valid", "`#{key}` must be a non-empty array of #{fam == :v4 ? 'IPv4' : 'IPv6'} addresses.")
+        next
+      end
+      bad = vals.reject { |v| routable_ip?(v.to_s, fam) }
+      check(
+        bad.empty?,
+        "#{key} addresses valid",
+        bad.empty? ? "" : "`#{key}` has invalid or non-public address(es): #{bad.map { |b| "`#{b}`" }.join(', ')}. Use a public #{fam == :v4 ? 'IPv4' : 'IPv6'} address (no loopback, private, link-local, or multicast ranges)."
+      )
+    end
+
     # Schema validation. (The data's own "$schema" pointer is allowed by the schema.)
     begin
       schemer = JSONSchemer.schema(JSON.parse(File.read("schema.json")))
@@ -248,6 +287,28 @@ class Validator
     req.body = body.to_json if body
     res = http.request(req)
     [res.code.to_i, (JSON.parse(res.body) rescue nil)]
+  end
+
+  # True if the string parses as an IPv4/IPv6 literal (so it must NOT be a CNAME).
+  def ip_literal?(str)
+    IPAddr.new(str)
+    true
+  rescue IPAddr::Error
+    false
+  end
+
+  # True only for a public, routable address of the expected family (:v4/:v6).
+  # Rejects loopback, private (RFC1918 / ULA), link-local, multicast, unspecified.
+  def routable_ip?(str, family)
+    ip = IPAddr.new(str)
+    return false unless family == (ip.ipv4? ? :v4 : :v6)
+    return false if ip.loopback? || ip.private? || ip.link_local?
+    return false if ip == IPAddr.new(family == :v4 ? "0.0.0.0" : "::")
+    multicast = family == :v4 ? IPAddr.new("224.0.0.0/4") : IPAddr.new("ff00::/8")
+    return false if multicast.include?(ip)
+    true
+  rescue IPAddr::Error
+    false
   end
 
   private

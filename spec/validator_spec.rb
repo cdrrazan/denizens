@@ -110,6 +110,70 @@ RSpec.describe Validator do
     end
   end
 
+  describe "record sanity" do
+    def added(file) = [{ "filename" => file, "status" => "added" }]
+
+    it "rejects a CNAME that is an IPv4 literal" do
+      write_claim("domains/c.json", claim(github: "rajan", record: { "CNAME" => "192.129.120.12" }))
+      v = validate(added("domains/c.json"), author: "rajan")
+      expect(result(v, "CNAME is a hostname")[:ok]).to be(false)
+    end
+
+    it "rejects a CNAME that is an IPv6 literal" do
+      write_claim("domains/c6.json", claim(github: "rajan", record: { "CNAME" => "2606:4700::1111" }))
+      v = validate(added("domains/c6.json"), author: "rajan")
+      expect(result(v, "CNAME is a hostname")[:ok]).to be(false)
+    end
+
+    it "accepts a CNAME that is a real hostname" do
+      write_claim("domains/c2.json", claim(github: "rajan", record: { "CNAME" => "rajan.github.io" }))
+      v = validate(added("domains/c2.json"), author: "rajan")
+      expect(result(v, "CNAME is a hostname")[:ok]).to be(true)
+    end
+
+    it "rejects an empty record object" do
+      write_claim("domains/e.json", claim(github: "rajan", record: {}))
+      v = validate(added("domains/e.json"), author: "rajan")
+      expect(result(v, "Record has a target")[:ok]).to be(false)
+    end
+
+    it "rejects a loopback A address" do
+      write_claim("domains/lo.json", claim(github: "rajan", record: { "A" => ["127.0.0.1"] }))
+      v = validate(added("domains/lo.json"), author: "rajan")
+      expect(result(v, "A addresses valid")[:ok]).to be(false)
+    end
+
+    it "rejects a private A address" do
+      write_claim("domains/p.json", claim(github: "rajan", record: { "A" => ["10.0.0.5", "8.8.8.8"] }))
+      v = validate(added("domains/p.json"), author: "rajan")
+      expect(result(v, "A addresses valid")[:ok]).to be(false)
+    end
+
+    it "accepts a public A address" do
+      write_claim("domains/pub.json", claim(github: "rajan", record: { "A" => ["185.199.108.153"] }))
+      v = validate(added("domains/pub.json"), author: "rajan")
+      expect(result(v, "A addresses valid")[:ok]).to be(true)
+    end
+
+    it "rejects an empty A array" do
+      write_claim("domains/ea.json", claim(github: "rajan", record: { "A" => [] }))
+      v = validate(added("domains/ea.json"), author: "rajan")
+      expect(result(v, "A addresses valid")[:ok]).to be(false)
+    end
+
+    it "rejects a link-local AAAA address" do
+      write_claim("domains/ll.json", claim(github: "rajan", record: { "AAAA" => ["fe80::1"] }))
+      v = validate(added("domains/ll.json"), author: "rajan")
+      expect(result(v, "AAAA addresses valid")[:ok]).to be(false)
+    end
+
+    it "accepts a public AAAA address" do
+      write_claim("domains/v6.json", claim(github: "rajan", record: { "AAAA" => ["2606:4700:4700::1111"] }))
+      v = validate(added("domains/v6.json"), author: "rajan")
+      expect(result(v, "AAAA addresses valid")[:ok]).to be(true)
+    end
+  end
+
   describe "forwarding-email guard" do
     it "rejects an email address hidden in a TXT record" do
       # owner.email is a public contact and must be allowed; the TXT address must not.
