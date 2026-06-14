@@ -11,4 +11,4 @@ GH_RAW_BASE = "https://raw.githubusercontent.com/cdrrazan/denizens/main/domains"
 # The origin of the Pages form, locked down for CORS. Set to your real form URL.
 ALLOWED_ORIGIN = "https://claim.devis.im"
 # GitHub OAuth App client id (public). The matching client secret is a wrangler secret.
-GH_CLIENT_ID = "REPLACE_WITH_GITHUB_OAUTH_CLIENT_ID"
+GH_CLIENT_ID = "Ov23li2SpugRrAeKSujE"
