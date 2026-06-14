@@ -1,0 +1,12 @@
+{
+  "$schema": "../schema.json",
+  "owner": {
+    "github": "cdrrazan"
+  },
+  "record": {
+    "CNAME": "cdrrazan.github.io"
+  },
+  "email": {
+    "enabled": true
+  }
+}
