@@ -36,12 +36,12 @@ One name gives you **one identity** on devis.im — the subdomain and the email 
 
 ```mermaid
 flowchart LR
-    A([You open a PR<br/>adding domains/name.json]) --> B{Automated<br/>checks}
+    A(["You open a PR<br/>adding domains/name.json"]) --> B{"Automated<br/>checks"}
     B -- fail --> A
-    B -- pass --> C[Maintainer review]
-    C -- merge --> D[/Provision bot/]
-    D --> E([name.devis.im live<br/>DNS + HTTPS, minutes])
-    D -. email enabled .-> F([Link to the<br/>private email form])
+    B -- pass --> C["Maintainer review"]
+    C -- merge --> D[/"Provision bot"/]
+    D --> E(["name.devis.im live<br/>DNS + HTTPS, minutes"])
+    D -. "email enabled" .-> F(["Link to the<br/>private email form"])
     style A fill:#0f766e,color:#fff
     style E fill:#0f766e,color:#fff
     style F fill:#e6f3f1,color:#0f766e
@@ -61,13 +61,13 @@ Email is **opt-in** (`"email": { "enabled": true }`) and your real address is **
 
 ```mermaid
 flowchart TD
-    A([Claim merged with<br/>email.enabled: true]) --> B[Open the private form<br/>claim.devis.im]
-    B --> C{Verify with GitHub}
-    C -- not your name --> X([Rejected])
-    C -- you own it --> D[Submit forwarding address<br/>behind Turnstile]
-    D --> E[Cloudflare emails that<br/>inbox a verification link]
-    E --> F([You click it])
-    F --> G([name@devis.im → your inbox<br/>forwarding live])
+    A(["Claim merged with<br/>email.enabled: true"]) --> B["Open the private form<br/>claim.devis.im"]
+    B --> C{"Verify with GitHub"}
+    C -- "not your name" --> X(["Rejected"])
+    C -- "you own it" --> D["Submit forwarding address<br/>behind Turnstile"]
+    D --> E["Cloudflare emails that<br/>inbox a verification link"]
+    E --> F(["You click it"])
+    F --> G(["name@devis.im -> your inbox<br/>forwarding live"])
     style A fill:#0f766e,color:#fff
     style G fill:#0f766e,color:#fff
     style X fill:#fdeaea,color:#8a1f1f
