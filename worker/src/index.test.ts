@@ -6,8 +6,10 @@ const env: Env = {
   CF_ACCOUNT_ID: "acct123",
   CF_ZONE_ID: "zone123",
   TURNSTILE_SECRET: "ts-secret",
+  GH_CLIENT_SECRET: "gh-secret-SHOULD-NOT-LEAK",
   ZONE_NAME: "devis.im",
   GH_RAW_BASE: "https://raw.example/domains",
+  GH_CLIENT_ID: "gh-client-id",
   ALLOWED_ORIGIN: "https://claim.devis.im",
 };
 
@@ -24,7 +26,9 @@ function mockFetch(overrides: Record<string, Responder> = {}) {
   calls = [];
   const defaults: Array<[string, Responder]> = [
     ["turnstile/v0/siteverify", () => res({ success: true })],
-    ["/domains/", () => res({ email: { enabled: true } })],
+    ["/domains/", () => res({ email: { enabled: true }, owner: { github: "octocat" } })],
+    ["github.com/login/oauth/access_token", () => res({ access_token: "gho_test" })],
+    ["api.github.com/user", () => res({ login: "octocat" })],
     ["/email/routing/addresses", () => res({ success: true, result: [] })],
     ["/email/routing/rules", () => res({ success: true, result: [] })],
   ];
@@ -52,7 +56,7 @@ function post(body: unknown): Request {
   });
 }
 
-const valid = { name: "rajan", email: "me@example.com", turnstileToken: "tok" };
+const valid = { name: "rajan", email: "me@example.com", turnstileToken: "tok", code: "ghcode" };
 
 beforeEach(() => mockFetch());
 
@@ -84,6 +88,11 @@ describe("input validation", () => {
     const r = await worker.fetch(post({ ...valid, turnstileToken: "" }), env);
     expect(r.status).toBe(400);
   });
+
+  it("rejects a missing GitHub code with 401", async () => {
+    const r = await worker.fetch(post({ ...valid, code: "" }), env);
+    expect(r.status).toBe(401);
+  });
 });
 
 describe("turnstile", () => {
@@ -105,6 +114,41 @@ describe("claim confirmation", () => {
     mockFetch({ "/domains/": () => res({ email: { enabled: false } }) });
     const r = await worker.fetch(post(valid), env);
     expect(r.status).toBe(404);
+  });
+});
+
+describe("github ownership", () => {
+  it("403s when the signed-in login does not match owner.github", async () => {
+    mockFetch({ "api.github.com/user": () => res({ login: "someone-else" }) });
+    const r = await worker.fetch(post(valid), env);
+    expect(r.status).toBe(403);
+    // Ownership is rejected before any Cloudflare provisioning happens.
+    expect(calls.some((c) => c.url.includes("/email/routing/"))).toBe(false);
+  });
+
+  it("matches owner.github case-insensitively", async () => {
+    mockFetch({
+      "/domains/": () => res({ email: { enabled: true }, owner: { github: "OctoCat" } }),
+      "api.github.com/user": () => res({ login: "octocat" }),
+      "/email/routing/addresses": verifiedAddress(),
+    });
+    const r = await worker.fetch(post(valid), env);
+    expect(r.status).toBe(200);
+    expect(calls.some((c) => c.method === "POST" && c.url.includes("/email/routing/rules"))).toBe(true);
+  });
+
+  it("502s when the OAuth code cannot be exchanged", async () => {
+    mockFetch({ "github.com/login/oauth/access_token": () => res({ error: "bad_verification_code" }) });
+    const r = await worker.fetch(post(valid), env);
+    expect(r.status).toBe(502);
+    expect(calls.some((c) => c.url.includes("/email/routing/"))).toBe(false);
+  });
+
+  it("502s when the GitHub user lookup fails", async () => {
+    mockFetch({ "api.github.com/user": () => res({}, 401) });
+    const r = await worker.fetch(post(valid), env);
+    expect(r.status).toBe(502); // can't read a login -> sign-in failed, not a mismatch
+    expect(calls.some((c) => c.url.includes("/email/routing/"))).toBe(false);
   });
 });
 
@@ -164,10 +208,12 @@ describe("verified address — rule creation", () => {
     expect(ruleCall?.body).toContain("me@example.com");
   });
 
-  it("never leaks the API token in any request URL", async () => {
+  it("never leaks secrets in any request URL", async () => {
     mockFetch({ "/email/routing/addresses": verifiedAddress() });
     await worker.fetch(post(valid), env);
-    expect(JSON.stringify(calls.map((c) => c.url))).not.toContain("test-token-SHOULD-NOT-LEAK");
+    const urls = JSON.stringify(calls.map((c) => c.url));
+    expect(urls).not.toContain("test-token-SHOULD-NOT-LEAK");
+    expect(urls).not.toContain("gh-secret-SHOULD-NOT-LEAK");
   });
 
   it("updates the existing routing rule instead of creating a duplicate", async () => {

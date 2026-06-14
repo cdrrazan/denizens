@@ -1,0 +1,10 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="devis.im">
+  <!-- White rounded square backdrop -->
+  <rect width="512" height="512" rx="112" fill="#ffffff"/>
+  <!-- Solid dark-teal envelope body -->
+  <rect x="116" y="160" width="280" height="192" rx="28" fill="#0f766e"/>
+  <!-- Flap fold, drawn in the white backdrop color -->
+  <path d="M132 182 L256 276 L380 182" fill="none" stroke="#ffffff" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Wordmark dot accent: the 'i' of .im -->
+  <circle cx="256" cy="402" r="14" fill="#0f766e"/>
+</svg>

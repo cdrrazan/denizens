@@ -4,3 +4,4 @@ CF_API_TOKEN=your-scoped-cloudflare-token
 CF_ACCOUNT_ID=your-account-id
 CF_ZONE_ID=your-zone-id
 TURNSTILE_SECRET=your-turnstile-secret
+GH_CLIENT_SECRET=your-github-oauth-app-client-secret
