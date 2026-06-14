@@ -47,7 +47,7 @@
       <!-- Turnstile site key (public). -->
       <div class="cf-turnstile" data-sitekey="0x4AAAAAADkF3BmANU9KSpW5" style="margin-top:1rem"></div>
 
-      <button type="submit"><span class="spinner" aria-hidden="true"></span><span class="btn-label">Sign in with GitHub &amp; activate</span></button>
+      <button type="submit"><span class="spinner" aria-hidden="true"></span><span class="btn-label">Activate forwarding</span></button>
     </form>
 
     <div id="msg"></div>
@@ -62,9 +62,15 @@
       const form = document.getElementById("form");
       const msg = document.getElementById("msg");
       const submitBtn = form.querySelector('button[type="submit"]');
+      const btnLabel = submitBtn.querySelector(".btn-label");
+      const DEFAULT_LABEL = "Activate forwarding";
+      const PENDING_LABEL = "Verified? Click to finish";
 
       function setBusy(busy) {
         submitBtn.disabled = busy;
+      }
+      function setLabel(text) {
+        btnLabel.textContent = text;
       }
 
       // Prefill the name from ?name= (the provisioning bot links here with it).
@@ -154,14 +160,22 @@
           const data = await res.json();
           if (data.ok) {
             show("ok", data.message);
-            // On the verify-then-resubmit step, keep the fields so the user can
-            // just re-submit after clicking the link. Clear only when fully done.
-            if (!data.pending) form.reset();
+            if (data.pending) {
+              // Verify-then-resubmit step: keep the fields and relabel the button
+              // so it's clear the submit landed and what to do after clicking the link.
+              setLabel(PENDING_LABEL);
+            } else {
+              // Fully done — clear the form and restore the default label.
+              form.reset();
+              setLabel(DEFAULT_LABEL);
+            }
           } else {
             show("err", data.error || "Something went wrong.");
+            setLabel(DEFAULT_LABEL);
           }
         } catch {
           show("err", "Network error. Please try again.");
+          setLabel(DEFAULT_LABEL);
         } finally {
           setBusy(false);
           // Turnstile tokens are single-use; reset so the next submit gets a fresh one.
