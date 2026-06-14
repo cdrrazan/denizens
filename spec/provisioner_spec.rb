@@ -139,6 +139,22 @@ RSpec.describe Provisioner do
 
       quietly { provisioner.comment_email_setup(["rajan"]) }
     end
+
+    it "falls back to the merge-commit message when no PR is associated with the sha" do
+      env.merge!("EMAIL_FORM_URL" => "https://form.devis.im", "REPO" => "cdrrazan/denizens",
+                 "GH_TOKEN" => "tok", "AFTER_SHA" => "mergesha")
+      # The associated-pulls endpoint is empty for a merge commit...
+      allow(provisioner).to receive(:gh).with(:get, %r{/commits/mergesha/pulls}).and_return([200, []])
+      # ...so it reads the merge commit message: "Merge pull request #9 ...".
+      allow(provisioner).to receive(:gh).with(:get, "/repos/cdrrazan/denizens/commits/mergesha")
+        .and_return([200, { "commit" => { "message" => "Merge pull request #9 from cdrrazan/claim/cdrrazan" } }])
+
+      expect(provisioner).to receive(:gh).with(
+        :post, "/repos/cdrrazan/denizens/issues/9/comments", hash_including(:body)
+      )
+
+      quietly { provisioner.comment_email_setup(["cdrrazan"]) }
+    end
   end
 
   describe "#changed_domain_files" do

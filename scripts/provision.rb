@@ -172,12 +172,11 @@ class Provisioner
       return
     end
 
-    _, prs = gh(:get, "/repos/#{repo}/commits/#{@after}/pulls")
-    unless prs.is_a?(Array) && !prs.empty?
+    pr = find_pr_number(repo)
+    if pr.nil?
       log "No PR associated with #{@after} — cannot post email-setup comment."
       return
     end
-    pr = prs.first["number"]
 
     names.each do |name|
       link = "#{form_url}?name=#{URI.encode_www_form_component(name)}"
@@ -194,6 +193,30 @@ class Provisioner
       gh(:post, "/repos/#{repo}/issues/#{pr}/comments", { body: body })
       log "  ✉ posted email-setup comment for #{name}"
     end
+  end
+
+  # Resolve the merged PR for @after. The "associated pulls" endpoint is empty
+  # for a merge commit, so fall back to the merge-commit message (Merge pull
+  # request #N / squash "(#N)") and finally to a recently-merged PR whose
+  # merge_commit_sha matches. Returns the PR number or nil.
+  def find_pr_number(repo)
+    _, prs = gh(:get, "/repos/#{repo}/commits/#{@after}/pulls")
+    return prs.first["number"] if prs.is_a?(Array) && !prs.empty?
+
+    _, commit = gh(:get, "/repos/#{repo}/commits/#{@after}")
+    if commit.is_a?(Hash)
+      msg = commit.dig("commit", "message").to_s
+      m = msg.match(/Merge pull request #(\d+)/) || msg.match(/\(#(\d+)\)/)
+      return m[1].to_i if m
+    end
+
+    _, list = gh(:get, "/repos/#{repo}/pulls?state=closed&sort=updated&direction=desc&per_page=30")
+    if list.is_a?(Array)
+      hit = list.find { |p| p["merge_commit_sha"] == @after }
+      return hit["number"] if hit
+    end
+
+    nil
   end
 
   # --- batch ---------------------------------------------------------------
