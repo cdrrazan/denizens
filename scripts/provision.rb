@@ -183,10 +183,14 @@ class Provisioner
       link = "#{form_url}?name=#{URI.encode_www_form_component(name)}"
       body = "<!-- denizens-email-setup -->\n" \
              "### 📨 Set up `#{name}@devis.im` forwarding\n\n" \
-             "Your subdomain is live. To finish email forwarding, submit your forwarding " \
-             "address privately here: #{link}\n\n" \
-             "You'll then get a verification email from Cloudflare — click the link in it " \
-             "to activate forwarding. **Never** post your forwarding address in this repo."
+             "Your subdomain is live! To finish email forwarding:\n\n" \
+             "1. Open the private form: #{link}\n" \
+             "2. **Verify with GitHub** — a popup confirms this name is yours " \
+             "(you can only forward a name your own account claimed).\n" \
+             "3. Enter the inbox to forward to. Cloudflare emails it a verification " \
+             "link — click it to activate forwarding.\n\n" \
+             "Your forwarding address is sent privately and is **never** stored in " \
+             "this repo. Never post it in a PR or comment."
       gh(:post, "/repos/#{repo}/issues/#{pr}/comments", { body: body })
       log "  ✉ posted email-setup comment for #{name}"
     end

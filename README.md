@@ -51,7 +51,7 @@ flowchart LR
 2. **Automated checks run** on your file — fix anything they flag.
 3. **A maintainer reviews.** If the name is free and the request looks fine, it's merged.
 4. **On merge, automation provisions your subdomain** — DNS record + HTTPS within minutes.
-5. **Asked for email?** You get a link to privately add your forwarding address.
+5. **Asked for email?** A bot comments on your merged PR with a private link to add your forwarding address.
 
 ---
 
@@ -78,8 +78,9 @@ anything in your file and its git history is visible forever. The whole point of
 `yourname@devis.im` is to *hide* your real address, so:
 
 - The public file only carries `email.enabled: true|false`.
-- After merge you submit the real address through a **private form** ([`claim.devis.im`](https://claim.devis.im)).
+- After merge, **a bot comments on your PR** with a private link to the form ([`claim.devis.im`](https://claim.devis.im), name prefilled).
 - You **verify with GitHub** there — proving the name is yours, so nobody can point *your* alias at *their* inbox.
+- Then you submit the real forwarding address (behind Turnstile).
 - Cloudflare sends a **verification link** to your inbox; you click it; forwarding goes live.
 - The registry **stores nothing** — your address lives only in Cloudflare's verified-destination system.
 

@@ -132,7 +132,9 @@ RSpec.describe Provisioner do
       expect(provisioner).to receive(:gh).with(
         :post,
         "/repos/cdrrazan/denizens/issues/7/comments",
-        hash_including(body: a_string_including("rajan@devis.im", "https://form.devis.im?name=rajan"))
+        hash_including(body: a_string_including(
+          "rajan@devis.im", "https://form.devis.im?name=rajan", "Verify with GitHub"
+        ))
       )
 
       quietly { provisioner.comment_email_setup(["rajan"]) }
