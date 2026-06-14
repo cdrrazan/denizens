@@ -29,9 +29,11 @@
     <h1>Set up your <code>name@devis.im</code> forwarding</h1>
     <p class="note">
       Enter the name you already claimed and the inbox you want mail forwarded to.
-      If the inbox is new to devis.im, Cloudflare emails it a verification link —
-      click it, then submit this form once more to finish. Your address is sent
-      privately and is never stored in the public registry.
+      When you click <em>Activate</em> you'll sign in with GitHub in a popup — this
+      proves the name is yours; you can only set up forwarding for a name your own
+      GitHub account claimed. If the inbox is new to devis.im, Cloudflare emails it
+      a verification link — click it, then submit this form once more to finish.
+      Your address is sent privately and is never stored in the public registry.
     </p>
 
     <form id="form">
@@ -45,7 +47,7 @@
       <!-- Turnstile site key (public). -->
       <div class="cf-turnstile" data-sitekey="0x4AAAAAADkF3BmANU9KSpW5" style="margin-top:1rem"></div>
 
-      <button type="submit"><span class="spinner" aria-hidden="true"></span><span class="btn-label">Activate forwarding</span></button>
+      <button type="submit"><span class="spinner" aria-hidden="true"></span><span class="btn-label">Sign in with GitHub &amp; activate</span></button>
     </form>
 
     <div id="msg"></div>
@@ -53,6 +55,10 @@
     <script>
       // Deployed Worker URL.
       const WORKER_URL = "https://denizens-email-intake.rubyonrails.workers.dev";
+      // GitHub OAuth App client id (public). The client secret lives only in the Worker.
+      const GH_CLIENT_ID = "REPLACE_WITH_GITHUB_OAUTH_CLIENT_ID";
+      const OAUTH_CALLBACK = location.origin + "/oauth-callback.html";
+
       const form = document.getElementById("form");
       const msg = document.getElementById("msg");
       const submitBtn = form.querySelector('button[type="submit"]');
@@ -65,6 +71,56 @@
       const params = new URLSearchParams(location.search);
       if (params.get("name")) document.getElementById("name").value = params.get("name");
 
+      /**
+       * Open a GitHub OAuth popup and resolve with a fresh one-time code. Keeping
+       * the main page intact preserves the filled fields and the solved Turnstile
+       * token; getting a fresh code per submit keeps the verify-then-resubmit step
+       * working, since codes are single-use.
+       */
+      function getGithubCode() {
+        return new Promise((resolve, reject) => {
+          const state = crypto.randomUUID();
+          const url =
+            "https://github.com/login/oauth/authorize" +
+            "?client_id=" + encodeURIComponent(GH_CLIENT_ID) +
+            "&redirect_uri=" + encodeURIComponent(OAUTH_CALLBACK) +
+            "&scope=" + // no scopes — we only read the public login
+            "&state=" + encodeURIComponent(state);
+
+          const popup = window.open(url, "denizens_gh_oauth", "width=600,height=720");
+          if (!popup) {
+            reject(new Error("Popup blocked. Allow popups and try again."));
+            return;
+          }
+
+          let done = false;
+          function cleanup() {
+            window.removeEventListener("message", onMessage);
+            clearInterval(closedTimer);
+          }
+          function onMessage(e) {
+            if (e.origin !== location.origin) return;
+            const d = e.data || {};
+            if (d.source !== "denizens-oauth") return;
+            if (d.state !== state) return; // CSRF guard
+            done = true;
+            cleanup();
+            try { popup.close(); } catch {}
+            if (d.code) resolve(d.code);
+            else reject(new Error("GitHub sign-in failed."));
+          }
+          window.addEventListener("message", onMessage);
+
+          // If the user closes the popup without authorizing, stop waiting.
+          const closedTimer = setInterval(() => {
+            if (popup.closed && !done) {
+              cleanup();
+              reject(new Error("GitHub sign-in was cancelled."));
+            }
+          }, 500);
+        });
+      }
+
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
         msg.className = "";
@@ -76,6 +132,15 @@
         }
         setBusy(true);
         try {
+          // Sign in with GitHub first (popup) — fresh code each submit.
+          let code;
+          try {
+            code = await getGithubCode();
+          } catch (err) {
+            show("err", err.message || "GitHub sign-in failed.");
+            return;
+          }
+
           const res = await fetch(WORKER_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -83,6 +148,7 @@
               name: document.getElementById("name").value.trim().toLowerCase(),
               email: document.getElementById("email").value.trim(),
               turnstileToken,
+              code,
             }),
           });
           const data = await res.json();
@@ -98,8 +164,9 @@
           show("err", "Network error. Please try again.");
         } finally {
           setBusy(false);
+          // Turnstile tokens are single-use; reset so the next submit gets a fresh one.
+          if (window.turnstile) window.turnstile.reset();
         }
-        if (window.turnstile) window.turnstile.reset();
       });
 
       function show(kind, text) {

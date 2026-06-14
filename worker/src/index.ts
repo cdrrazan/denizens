@@ -2,16 +2,19 @@
  * denizens — private email-intake Worker for devis.im.
  *
  * Flow (POST):
- *   1. validate { name, email, turnstileToken }
+ *   1. validate { name, email, turnstileToken, code }
  *   2. verify the Turnstile token server-side
  *   3. confirm the name is actually merged + email-enabled by fetching the public
- *      domain file from raw.githubusercontent.com
- *   4. create a VERIFIED destination address (idempotent) — Cloudflare emails the
+ *      domain file from raw.githubusercontent.com (also reads owner.github)
+ *   4. prove ownership: exchange the GitHub OAuth code, read the signed-in login,
+ *      and require it to equal the file's owner.github — you can only set up
+ *      forwarding for a name your own GitHub account claimed
+ *   5. create a VERIFIED destination address (idempotent) — Cloudflare emails the
  *      user a verification link they must click; this also proves inbox control
- *   5. upsert the routing rule name@devis.im -> forward (idempotent)
- *   6. return "check your inbox" — STORE NOTHING
+ *   6. upsert the routing rule name@devis.im -> forward (idempotent)
+ *   7. return "check your inbox" — STORE NOTHING
  *
- * The forwarding address is never logged, never echoed, never persisted.
+ * The forwarding address and the OAuth token are never logged, echoed, or persisted.
  */
 
 export interface Env {
@@ -20,9 +23,11 @@ export interface Env {
   CF_ACCOUNT_ID: string;
   CF_ZONE_ID: string;
   TURNSTILE_SECRET: string;
+  GH_CLIENT_SECRET: string; // GitHub OAuth App client secret
   // vars (wrangler.toml [vars])
   ZONE_NAME: string;
   GH_RAW_BASE: string; // e.g. https://raw.githubusercontent.com/cdrrazan/denizens/main/domains
+  GH_CLIENT_ID: string; // GitHub OAuth App client id (public)
   ALLOWED_ORIGIN: string; // the Pages form origin, e.g. https://claim.devis.im
 }
 
@@ -47,7 +52,7 @@ export default {
       return json({ ok: false, error: "Method not allowed." }, 405, cors);
     }
 
-    let body: { name?: string; email?: string; turnstileToken?: string };
+    let body: { name?: string; email?: string; turnstileToken?: string; code?: string };
     try {
       body = await parseBody(request);
     } catch {
@@ -57,6 +62,7 @@ export default {
     const name = (body.name || "").trim().toLowerCase();
     const email = (body.email || "").trim();
     const token = body.turnstileToken || "";
+    const code = (body.code || "").trim();
 
     if (!NAME_RE.test(name) || name.length > 63) {
       return json({ ok: false, error: "Invalid name." }, 400, cors);
@@ -67,6 +73,9 @@ export default {
     if (!token) {
       return json({ ok: false, error: "Missing Turnstile token." }, 400, cors);
     }
+    if (!code) {
+      return json({ ok: false, error: "Sign in with GitHub to prove you own this name." }, 401, cors);
+    }
 
     // 2. Turnstile.
     const ip = request.headers.get("CF-Connecting-IP") || undefined;
@@ -76,7 +85,7 @@ export default {
 
     // 3. Confirm the claim is merged and email-enabled.
     const claim = await fetchClaim(env, name);
-    if (!claim.ok) {
+    if (!claim.ok || !claim.owner) {
       return json(
         { ok: false, error: "That name isn't a merged claim with email enabled yet." },
         404,
@@ -84,8 +93,24 @@ export default {
       );
     }
 
+    // 4. Prove ownership: the signed-in GitHub login must match the file's owner.
+    let login: string;
     try {
-      // 4. Destination address (idempotent) — a brand-new one triggers Cloudflare's
+      login = await githubLogin(env, code);
+    } catch (e) {
+      console.error(`github oauth failed for ${name}: ${(e as Error).message}`);
+      return json({ ok: false, error: "GitHub sign-in failed. Please try again." }, 502, cors);
+    }
+    if (login.toLowerCase() !== claim.owner.toLowerCase()) {
+      return json(
+        { ok: false, error: "This name belongs to a different GitHub account." },
+        403,
+        cors,
+      );
+    }
+
+    try {
+      // 5. Destination address (idempotent) — a brand-new one triggers Cloudflare's
       //    verification email. The forward rule below can only attach to a *verified*
       //    destination, so a freshly-created address is not ready on this submit.
       const dest = await ensureDestinationAddress(env, email);
@@ -101,7 +126,7 @@ export default {
           cors,
         );
       }
-      // 5. Destination is verified — create/update the routing rule (idempotent).
+      // 6. Destination is verified — create/update the routing rule (idempotent).
       await upsertRoutingRule(env, name, email);
     } catch (e) {
       // Never surface internals or the address; log without the email.
@@ -163,17 +188,55 @@ async function verifyTurnstile(env: Env, token: string, ip?: string): Promise<bo
   return data.success === true;
 }
 
-async function fetchClaim(env: Env, name: string): Promise<{ ok: boolean }> {
+async function fetchClaim(env: Env, name: string): Promise<{ ok: boolean; owner?: string }> {
   const res = await fetch(`${env.GH_RAW_BASE}/${name}.json`, {
     headers: { "User-Agent": "denizens-email-intake" },
   });
   if (res.status !== 200) return { ok: false };
   try {
-    const data = (await res.json()) as { email?: { enabled?: boolean } };
-    return { ok: data?.email?.enabled === true };
+    const data = (await res.json()) as {
+      email?: { enabled?: boolean };
+      owner?: { github?: string };
+    };
+    return { ok: data?.email?.enabled === true, owner: data?.owner?.github };
   } catch {
     return { ok: false };
   }
+}
+
+/**
+ * Exchange a GitHub OAuth code for the signed-in user's login. Throws when the
+ * code can't be exchanged or the profile can't be read — the caller maps that to
+ * a "sign-in failed" response, distinct from a successful login that simply
+ * doesn't own the name. The access token is used once to read the public profile
+ * and then discarded — never logged, never stored. We request no scopes, so the
+ * token only ever sees public profile data.
+ */
+async function githubLogin(env: Env, code: string): Promise<string> {
+  const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({
+      client_id: env.GH_CLIENT_ID,
+      client_secret: env.GH_CLIENT_SECRET,
+      code,
+    }),
+  });
+  const tokenData = (await tokenRes.json()) as { access_token?: string; error?: string };
+  const accessToken = tokenData.access_token;
+  if (!accessToken) throw new Error("oauth code exchange failed");
+
+  const userRes = await fetch("https://api.github.com/user", {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "User-Agent": "denizens-email-intake",
+      Accept: "application/vnd.github+json",
+    },
+  });
+  if (userRes.status !== 200) throw new Error("github user lookup failed");
+  const user = (await userRes.json()) as { login?: string };
+  if (!user.login) throw new Error("github user has no login");
+  return user.login;
 }
 
 async function cf<T = unknown>(
