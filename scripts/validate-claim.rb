@@ -149,6 +149,15 @@ class Validator
       cname_conflict ? "`record` uses `CNAME` together with `A`/`AAAA`. Use `CNAME` for hosted platforms, or `A`/`AAAA` for a raw server IP — not both." : ""
     )
 
+    # URL redirect records aren't provisioned yet — reject so a claim can't merge
+    # into a dead, non-resolving subdomain. (Schema still accepts URL for forward-compat.)
+    uses_url = rec.key?("URL")
+    check(
+      !uses_url,
+      "Supported record type",
+      uses_url ? "`URL` (redirect) records aren't supported yet — the subdomain would merge but never resolve. Use `CNAME` for hosted platforms, or `A`/`AAAA` for a raw server IP." : ""
+    )
+
     # Schema validation. (The data's own "$schema" pointer is allowed by the schema.)
     begin
       schemer = JSONSchemer.schema(JSON.parse(File.read("schema.json")))

@@ -135,7 +135,7 @@ Pick whichever fits how your site is hosted. Use `CNAME` **or** `A`/`AAAA`, not 
 | `A` | array of IPv4 addresses | a raw server with an IPv4 address |
 | `AAAA` | array of IPv6 addresses | a raw server with an IPv6 address |
 | `TXT` | a string or array of strings | verification records, etc. |
-| `URL` | a URL | redirect the subdomain elsewhere |
+| `URL` | a URL | redirect the subdomain elsewhere — **not supported yet** (claims using it are rejected) |
 
 ---
 

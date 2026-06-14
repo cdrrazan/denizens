@@ -96,6 +96,18 @@ RSpec.describe Validator do
       v = validate([{ "filename" => "domains/broken.json", "status" => "added" }], author: "rajan")
       expect(result(v, "Valid JSON")[:ok]).to be(false)
     end
+
+    it "rejects a URL record (redirects not supported yet)" do
+      write_claim("domains/redir.json", claim(github: "rajan", record: { "URL" => "https://example.com" }))
+      v = validate([{ "filename" => "domains/redir.json", "status" => "added" }], author: "rajan")
+      expect(result(v, "Supported record type")[:ok]).to be(false)
+    end
+
+    it "accepts a CNAME record as a supported type" do
+      write_claim("domains/ok.json", claim(github: "rajan", record: { "CNAME" => "x.github.io" }))
+      v = validate([{ "filename" => "domains/ok.json", "status" => "added" }], author: "rajan")
+      expect(result(v, "Supported record type")[:ok]).to be(true)
+    end
   end
 
   describe "forwarding-email guard" do
