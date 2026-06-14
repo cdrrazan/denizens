@@ -171,7 +171,9 @@ with devis.im so system mail and abuse reports always reach the operators, never
 Fire-and-forget — there's no dashboard:
 
 - **Change** where your subdomain points, or your forwarding target → open a new PR editing your file.
-- **Release** a name → delete your file in a PR.
+- **Release** a name → delete your file in a PR. On merge, automation tears down the DNS record + email routing rule, and the name returns to the pool. This also frees a slot against the 5-name cap.
+
+> At the 5-name cap and want a different name? Release first, then claim — they're **two separate PRs** (one file per PR), so the delete must merge before the new claim passes.
 
 ---
 
