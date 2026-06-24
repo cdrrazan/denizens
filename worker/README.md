@@ -65,10 +65,32 @@ npm install
 npm run typecheck    # tsc --noEmit
 npm test             # vitest (fetch mocked)
 npm run dev          # wrangler dev (needs .dev.vars)
-npm run deploy       # wrangler deploy
+npm run deploy       # wrangler deploy  → the Worker (api.devis.im)
 ```
 
-Deploy the form to Cloudflare Pages, set its Turnstile **site key** in
-`public/index.html` and the deployed Worker URL in `WORKER_URL`. Then set the
-registry repo variable `EMAIL_FORM_URL` to the form's URL so the provisioning
-Action can link contributors to it.
+This repo has **two separate Cloudflare deploys**:
+
+1. **The Worker** (`api.devis.im`) — `npm run deploy` (uses `wrangler.toml`).
+2. **The static form** (`claim.devis.im`) — a **Cloudflare Pages** project
+   (`denizens-email-form`) serving `worker/public/`.
+
+### Deploying the form (Pages)
+
+Run this **from the repo root**, not from `worker/`:
+
+```sh
+npx wrangler pages deploy worker/public --project-name denizens-email-form --branch main
+```
+
+- **`--branch main` is required** — without it the upload lands on a preview URL
+  and the `claim.devis.im` custom domain keeps serving the old build.
+- **Run from the repo root on purpose.** `wrangler pages deploy` picks up any
+  `wrangler.toml` in the current directory. Running from `worker/` makes it read
+  the *Worker's* `wrangler.toml` and warn `missing the "pages_build_output_dir"
+  field`. The repo root has no `wrangler.toml`, so the warning disappears and the
+  Worker config stays Worker-only (no `pages_build_output_dir` pollution).
+
+After deploying the form, set its Turnstile **site key** and the deployed Worker
+URL (`WORKER_URL`) in `public/index.html`, then set the registry repo variable
+`EMAIL_FORM_URL` to the form's URL so the provisioning Action can link
+contributors to it.
