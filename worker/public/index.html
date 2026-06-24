@@ -99,6 +99,12 @@
       #msg { margin-top: 1.1rem; padding: 0.8rem 0.9rem; border-radius: 9px; font-size: 0.92rem; display: none; border: 1px solid transparent; }
       #msg.ok { background: var(--ok-bg); color: var(--ok-fg); border-color: var(--ok-bd); display: block; }
       #msg.err { background: var(--err-bg); color: var(--err-fg); border-color: var(--err-bd); display: block; }
+
+      .phone { margin-top: 1.5rem; border-top: 1px solid var(--code-bg); padding-top: 1rem; }
+      .phone summary { cursor: pointer; font-size: 0.9rem; color: var(--accent); font-weight: 600; list-style: none; text-align: center; }
+      .phone summary::-webkit-details-marker { display: none; }
+      .phone-hint { text-align: center; color: var(--muted); font-size: 0.85rem; margin: 0.75rem 0 0; }
+      .qr { display: block; margin: 0.75rem auto 0.25rem; border-radius: 10px; background: #fff; padding: 10px; width: 180px; height: 180px; }
     </style>
   </head>
   <body>
@@ -136,6 +142,12 @@
       </form>
 
       <div id="msg"></div>
+
+      <details class="phone">
+        <summary>📱 Continue on your phone</summary>
+        <p class="phone-hint">Scan to open this form on your mobile device.</p>
+        <img id="qr" class="qr" alt="QR code linking to this form" width="180" height="180" />
+      </details>
     </main>
 
     <script>
@@ -162,6 +174,12 @@
       // Prefill the name from ?name= (the provisioning bot links here with it).
       const params = new URLSearchParams(location.search);
       if (params.get("name")) document.getElementById("name").value = params.get("name");
+
+      // "Continue on your phone" QR — encodes this page's URL (name param only,
+      // which is public). No secret or forwarding address is ever in the URL.
+      document.getElementById("qr").src =
+        "https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=8&data=" +
+        encodeURIComponent(location.href);
 
       /**
        * Open a GitHub OAuth popup and resolve with a fresh one-time code. Keeping

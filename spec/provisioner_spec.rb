@@ -133,7 +133,8 @@ RSpec.describe Provisioner do
         :post,
         "/repos/cdrrazan/denizens/issues/7/comments",
         hash_including(body: a_string_including(
-          "rajan@devis.im", "https://form.devis.im?name=rajan", "Verify with GitHub"
+          "rajan@devis.im", "https://form.devis.im?name=rajan", "Verify with GitHub",
+          "api.qrserver.com"
         ))
       )
 

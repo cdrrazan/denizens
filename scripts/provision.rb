@@ -180,6 +180,9 @@ class Provisioner
 
     names.each do |name|
       link = "#{form_url}?name=#{URI.encode_www_form_component(name)}"
+      # QR encodes only the public form link (name is public). No secret/email.
+      qr = "https://api.qrserver.com/v1/create-qr-code/" \
+           "?size=200x200&margin=8&data=#{URI.encode_www_form_component(link)}"
       body = "<!-- denizens-email-setup -->\n" \
              "### 📨 Set up `#{name}@devis.im` forwarding\n\n" \
              "Your subdomain is live! To finish email forwarding:\n\n" \
@@ -188,6 +191,8 @@ class Provisioner
              "(you can only forward a name your own account claimed).\n" \
              "3. Enter the inbox to forward to. Cloudflare emails it a verification " \
              "link — click it to activate forwarding.\n\n" \
+             "**On your phone?** Scan to open the form there:\n\n" \
+             "[![Scan to open the email-setup form](#{qr})](#{link})\n\n" \
              "Your forwarding address is sent privately and is **never** stored in " \
              "this repo. Never post it in a PR or comment."
       gh(:post, "/repos/#{repo}/issues/#{pr}/comments", { body: body })
