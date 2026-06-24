@@ -35,7 +35,7 @@ class Validator
   MARKER = "<!-- denizens-validation -->"
   EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/
   NAME_RE = /\A[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\z/
-  MAX_NAMES_PER_OWNER = 5
+  MAX_NAMES_PER_OWNER = 2
 
   attr_reader :results, :skip_message
 

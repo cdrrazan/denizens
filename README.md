@@ -150,7 +150,7 @@ addresses (`abuse`, `postmaster`, `admin`, `security`, `dmarc`…), and a handfu
 reserved service words. The full list is in [`reserved.json`](./reserved.json). These stay
 with devis.im so system mail and abuse reports always reach the operators, never a third party.
 
-**One person, up to 5 names.** Each GitHub account can hold at most 5 claims — release one (delete its file in a PR) to free a slot.
+**One person, up to 2 names.** Each GitHub account can hold at most 2 claims — release one (delete its file in a PR) to free a slot.
 
 ---
 

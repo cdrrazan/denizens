@@ -44,7 +44,7 @@ Today the repo is **data + schema only** — no automation has been built yet. T
 - **`owner.github` must equal the PR author.** Contributors claim names only for themselves.
 - **No forwarding email anywhere in the file** — reject anything that looks like a personal inbox.
 - Editing/deleting **someone else's** file is rejected (except the owner releasing their own name).
-- **Per-owner cap** — one `owner.github` may hold at most `MAX_NAMES_PER_OWNER` (5) names. New claims past the cap are rejected; edits to existing files are exempt.
+- **Per-owner cap** — one `owner.github` may hold at most `MAX_NAMES_PER_OWNER` (2) names. New claims past the cap are rejected; edits to existing files are exempt.
 - **Record sanity** (the schema's `format` can't catch these): reject `URL` records (redirects unbuilt — would merge into a dead name); reject an empty `record`; reject a `CNAME` set to an IP literal (an IP is a syntactically-valid hostname, so `format: hostname` lets it through — use `A`/`AAAA`); reject `A`/`AAAA` values that aren't **public/routable** (loopback, RFC1918/ULA private, link-local, multicast, unspecified) or are the wrong family / empty arrays.
 
 ## Hard constraints (do not violate)
