@@ -101,8 +101,9 @@
       #msg.err { background: var(--err-bg); color: var(--err-fg); border-color: var(--err-bd); display: block; }
 
       .phone { margin-top: 1.5rem; border-top: 1px solid var(--code-bg); padding-top: 1rem; }
-      .phone summary { cursor: pointer; font-size: 0.9rem; color: var(--accent); font-weight: 600; list-style: none; text-align: center; }
+      .phone summary { cursor: pointer; font-size: 0.9rem; color: var(--accent); font-weight: 600; list-style: none; display: flex; align-items: center; justify-content: center; gap: 0.4rem; }
       .phone summary::-webkit-details-marker { display: none; }
+      .phone-icon { width: 1.05rem; height: 1.05rem; flex: none; }
       .phone-hint { text-align: center; color: var(--muted); font-size: 0.85rem; margin: 0.75rem 0 0; }
       .qr { display: block; margin: 0.75rem auto 0.25rem; border-radius: 10px; background: #fff; padding: 10px; width: 180px; height: 180px; }
     </style>
@@ -144,7 +145,7 @@
       <div id="msg"></div>
 
       <details class="phone">
-        <summary>📱 Continue on your phone</summary>
+        <summary><svg class="phone-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3" /><line x1="11" y1="18" x2="13" y2="18" /></svg>Continue on your phone</summary>
         <p class="phone-hint">Scan to open this form on your mobile device.</p>
         <img id="qr" class="qr" alt="QR code linking to this form" width="180" height="180" />
       </details>
