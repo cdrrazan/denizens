@@ -1,0 +1,7 @@
+# Sponsor button config for the denizens repo.
+# The "Sponsor" button only renders for platforms that are actually enabled —
+# GitHub Sponsors must be set up on the account before the first entry shows.
+# See FUNDING.md for what support covers and what it deliberately does not buy.
+
+github: [cdrrazan]
+custom: ["https://github.com/cdrrazan/denizens/blob/main/FUNDING.md"]

@@ -8,6 +8,7 @@
 `name.devis.im` subdomain **and** an optional `name@devis.im` email alias,
 free, by opening a pull request.
 
+[![Tests](https://github.com/cdrrazan/denizens/actions/workflows/test.yml/badge.svg)](https://github.com/cdrrazan/denizens/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-0f766e.svg)](./LICENSE)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-0f766e.svg)](./CONTRIBUTING.md)
 ![Pure Ruby automation](https://img.shields.io/badge/automation-Ruby-0f766e.svg)
@@ -171,9 +172,9 @@ with devis.im so system mail and abuse reports always reach the operators, never
 Fire-and-forget — there's no dashboard:
 
 - **Change** where your subdomain points, or your forwarding target → open a new PR editing your file.
-- **Release** a name → delete your file in a PR. On merge, automation tears down the DNS record + email routing rule, and the name returns to the pool. This also frees a slot against the 5-name cap.
+- **Release** a name → delete your file in a PR. On merge, automation tears down the DNS record + email routing rule, and the name returns to the pool. This also frees a slot against the 2-name cap.
 
-> At the 5-name cap and want a different name? Release first, then claim — they're **two separate PRs** (one file per PR), so the delete must merge before the new claim passes.
+> At the 2-name cap and want a different name? Release first, then claim — they're **two separate PRs** (one file per PR), so the delete must merge before the new claim passes.
 
 ---
 
@@ -182,6 +183,85 @@ Fire-and-forget — there's no dashboard:
 Subdomains or aliases used for phishing, malware, spam, or impersonation are removed without
 notice. Report abuse to [`abuse@devis.im`](mailto:abuse@devis.im). See the operator runbook in
 [`docs/abuse-triage.md`](./docs/abuse-triage.md).
+
+Security vulnerabilities go through a private channel instead — see [`SECURITY.md`](./SECURITY.md).
+
+---
+
+## ⚙️ How the automation works
+
+No dashboard, no database. The repository *is* the state, and four pieces of automation act on it.
+
+| When | What runs | What it does |
+| --- | --- | --- |
+| Pull request | [`validate.yml`](./.github/workflows/validate.yml) → [`scripts/validate-claim.rb`](./scripts/validate-claim.rb) | Validates your file against [`schema.json`](./schema.json) plus the policy rules the schema can't express — one file per PR, filename matches the claimed name, name free and not reserved, `owner.github` equals the PR author, per-owner cap, record sanity. Posts a single pass/fail comment, updated in place on every push. |
+| Merge to `main` | [`provision.yml`](./.github/workflows/provision.yml) → [`scripts/provision.rb`](./scripts/provision.rb) | Diffs added/changed/deleted `domains/*.json` and applies them to Cloudflare **idempotently** — creates or updates DNS records, tears them down (plus any routing rule) on delete, and comments the private email-form link when `email.enabled`. One bad file never breaks the batch. |
+| Email setup | [`worker/`](./worker) (Cloudflare Worker + Pages form) | The private intake at [`claim.devis.im`](https://claim.devis.im): GitHub sign-in proves the name is yours, Turnstile blocks bots, then it creates the verified destination address + routing rule. Stores nothing. |
+| Weekly cron | [`blocklist.yml`](./.github/workflows/blocklist.yml) → [`scripts/blocklist-check.rb`](./scripts/blocklist-check.rb) | Checks devis.im against Spamhaus DBL / SURBL / URIBL and opens a tracking issue on a real listing. Resolver-blocked answers are reported *unknown*, never a false hit. |
+
+Two rules hold the whole design together: **your forwarding address never touches this repo**, and
+**every provisioning step is idempotent** — re-running on the same name updates, never duplicates.
+
+### Repo layout
+
+```
+domains/          one JSON file per claimed name (example.json is a template)
+schema.json       the contract every claim validates against
+reserved.json     names that can't be claimed
+scripts/          Ruby automation — validate, provision, blocklist check
+spec/             RSpec suite for those scripts
+.github/          workflows, issue + PR templates, CODEOWNERS
+worker/           TypeScript Cloudflare Worker + the private email form
+site/             static landing page for the apex devis.im
+docs/             operator runbooks + the newcomer claim walkthrough
+```
+
+### Running it locally
+
+Only needed if you're changing the automation — claiming a name needs nothing installed.
+
+```sh
+bundle install          # Ruby side
+bundle exec rspec       # validator, provisioner, blocklist specs
+
+cd worker && npm install && npm test    # Worker specs (vitest)
+```
+
+Ruby scripts are classes (`Validator`, `Provisioner`) with a guarded CLI entrypoint. Change behaviour,
+change the spec. Secrets live in GitHub Secrets and Worker env vars — never in a tracked file.
+
+---
+
+## 📈 Status
+
+Registry, validation, provisioning, the email Worker, and the landing page are all shipped and running.
+Known gaps, so nothing surprises you:
+
+- **`URL` records aren't supported yet** — claims using one are rejected rather than merged into a dead name. Redirect support is a follow-up.
+- **Wildcard/parked names return NXDOMAIN by design.** No interstitial page.
+- **Forward-only email.** No mailboxes; you can't *send* as `name@devis.im`.
+- **DMARC is ramping** through `none` → `quarantine` → `reject`, per [`docs/email-reputation.md`](./docs/email-reputation.md).
+
+Sequencing and what's left lives in [`ROADMAP.md`](./ROADMAP.md).
+
+---
+
+## 💬 Contact
+
+| For | Where |
+| --- | --- |
+| Claim help, bugs, ideas | [Open an issue](https://github.com/cdrrazan/denizens/issues) — templates exist for claim help, abuse reports, and name releases |
+| Abuse | [`abuse@devis.im`](mailto:abuse@devis.im) |
+| Security | Private advisory, see [`SECURITY.md`](./SECURITY.md) |
+| Anything else | [`irajanbhattarai@gmail.com`](mailto:irajanbhattarai@gmail.com) |
+
+---
+
+## 💛 Supporting devis.im
+
+Names are free and stay free. The domain renewal and operator time aren't — if devis.im is
+useful to you, [`FUNDING.md`](./FUNDING.md) explains what support covers and what it deliberately
+doesn't buy (no paid tiers, no priority claims, no reserved-name sales).
 
 ---
 
