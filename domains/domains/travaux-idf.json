@@ -1,0 +1,13 @@
+
+{
+  "$schema": "../schema.json",
+  "owner": {
+    "github": "travaux-idf"
+  },
+  "record": {
+    "CNAME": "travaux-idf.github.io"
+  },
+  "email": {
+    "enabled": true
+  }
+}
