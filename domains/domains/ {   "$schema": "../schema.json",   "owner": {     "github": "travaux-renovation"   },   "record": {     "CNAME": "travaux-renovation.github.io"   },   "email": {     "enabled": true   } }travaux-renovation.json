@@ -1,0 +1,13 @@
+
+{
+  "$schema": "../schema.json",
+  "owner": {
+    "github": "travaux-renovation"
+  },
+  "record": {
+    "CNAME": "travaux-renovation.github.io"
+  },
+  "email": {
+    "enabled": true
+  }
+}
