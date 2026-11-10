@@ -1,0 +1,9 @@
+{
+  "$schema": "../schema.json",
+  "owner": {
+    "github": "9499758-wq"
+  },
+  "record": {
+    "CNAME": "aiym168.github.io"
+  }
+}
